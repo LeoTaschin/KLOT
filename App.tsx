@@ -8,6 +8,8 @@ import { View } from 'react-native'
 
 import { AnimatedSplash } from './src/components/AnimatedSplash'
 import { RootNavigator } from './src/navigation/RootNavigator'
+import { supabase } from './src/lib/supabase'
+import { useAuthStore } from './src/store/useAuthStore'
 
 // Mantém a splash nativa visível até os assets estarem prontos
 SplashScreen.preventAutoHideAsync()
@@ -18,11 +20,28 @@ export default function App() {
   const [appReady, setAppReady] = useState(false)
   const [splashDone, setSplashDone] = useState(false)
 
+  // Aguarda o zustand terminar de hidratar o estado do AsyncStorage
+  const storeHydrated = useAuthStore.persist.hasHydrated()
+  const login = useAuthStore((state) => state.login)
+  const logout = useAuthStore((state) => state.logout)
+
   useEffect(() => {
     async function prepare() {
       try {
-        // Carregue aqui fontes, assets críticos, dados iniciais, etc.
-        // Exemplo: await Font.loadAsync({ ... })
+        // Restaura sessão ativa do Supabase
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          login(session.access_token)
+        }
+
+        // Listener para mudanças de sessão (logout, token refresh)
+        supabase.auth.onAuthStateChange((_event, session) => {
+          if (session) {
+            login(session.access_token)
+          } else {
+            logout()
+          }
+        })
       } catch (e) {
         console.warn(e)
       } finally {
@@ -40,7 +59,8 @@ export default function App() {
     }
   }, [appReady])
 
-  if (!appReady) return null
+  // Não renderiza nada até o store estar hidratado e os assets prontos
+  if (!appReady || !storeHydrated) return null
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -1,0 +1,48 @@
+export default {
+  welcome: {
+    title: 'El dinero no debería complicar la amistad.',
+    subtitle: 'Divide cuentas, salda via PIX y mantén todo organizado.',
+    createAccount: 'Crear mi cuenta',
+    signIn: 'Ya tengo una cuenta',
+  },
+  auth: {
+    login: {
+      titleEmail: 'Ingresa tu correo',
+      titlePassword: 'Ingresa tu contraseña',
+      email: 'Correo electrónico',
+      password: 'Contraseña',
+      next: 'Siguiente',
+      submit: 'Iniciar sesión',
+      forgotPassword: '¿Olvidaste tu contraseña?',
+      noAccount: '¿No tienes una cuenta?',
+      createAccount: 'Crear cuenta',
+      errorInvalidEmail: 'Correo inválido.',
+      errorEmailNotFound: 'No hay cuenta con este correo.',
+      errorPasswordRequired: 'Ingresa tu contraseña.',
+      errorWrongPassword: 'Contraseña incorrecta. Intenta de nuevo.',
+      errorGeneric: 'Error al iniciar sesión. Intenta de nuevo.',
+    },
+    register: {
+      title: 'Crear cuenta',
+      name: 'Nombre',
+      email: 'Correo electrónico',
+      password: 'Contraseña',
+      submit: 'Crear cuenta',
+      hasAccount: 'Ya tengo una cuenta',
+    },
+    forgotPassword: {
+      title: 'Recuperar contraseña',
+      email: 'Correo electrónico',
+      submit: 'Enviar instrucciones',
+    },
+  },
+  common: {
+    loading: 'Cargando...',
+    error: 'Algo salió mal',
+    retry: 'Intentar de nuevo',
+    back: 'Volver',
+    save: 'Guardar',
+    cancel: 'Cancelar',
+    confirm: 'Confirmar',
+  },
+} as const
