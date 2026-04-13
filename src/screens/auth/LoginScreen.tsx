@@ -15,7 +15,7 @@ import {
 import React, { useEffect, useRef, useState } from 'react'
 
 import { KlotLogo } from '../../components/KlotLogo'
-import { Input, Text } from '../../components/ui'
+import { ClearIcon, EyeIcon, EyeOffIcon, Input, Text } from '../../components/ui'
 import { Colors, Radius, Shadows, Spacing } from '../../constants/theme'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/useAuthStore'
@@ -212,7 +212,7 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
           rightElement={
             email.length > 0 && step === 'email' ? (
               <TouchableOpacity onPress={() => setEmail('')} hitSlop={8}>
-                <Text variant="body" color={Colors.neutral.placeholder}>✕</Text>
+                <ClearIcon />
               </TouchableOpacity>
             ) : null
           }
@@ -231,9 +231,7 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
             error={error}
             rightElement={
               <TouchableOpacity onPress={() => setShowPassword((v) => !v)} hitSlop={8}>
-                <Text variant="body" color={Colors.neutral.placeholder}>
-                  {showPassword ? '🙈' : '👁'}
-                </Text>
+                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
               </TouchableOpacity>
             }
           />

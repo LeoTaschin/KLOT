@@ -195,9 +195,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     paddingHorizontal: 2,
   },
-  rowError: {
-    backgroundColor: `${Colors.status.debtBg}`,
-  },
+  rowError: {},
   input: {
     flex: 1,
     fontSize: 16,
