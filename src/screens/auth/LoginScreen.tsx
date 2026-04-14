@@ -171,7 +171,7 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
   }
 
   const handleForgotPassword = () => navigation.navigate('ForgotPassword')
-  const handleGoToRegister = () => navigation.navigate('Register')
+  const handleGoToRegister = () => navigation.navigate('RegisterInfo')
 
   // ═══════════════════════════════════════════════════════════════
   // RENDER

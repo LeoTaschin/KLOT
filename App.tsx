@@ -25,6 +25,9 @@ export default function App() {
   const login = useAuthStore((state) => state.login)
   const logout = useAuthStore((state) => state.logout)
 
+  // Importado fora do hook para leitura direta no callback
+  const getRegisterState = () => require('./src/store/useRegisterStore').useRegisterStore.getState()
+
   useEffect(() => {
     async function prepare() {
       try {
@@ -35,10 +38,12 @@ export default function App() {
         }
 
         // Listener para mudanças de sessão (logout, token refresh)
+        // Ignora SIGNED_IN durante o fluxo de cadastro — o login acontece no último passo
         supabase.auth.onAuthStateChange((_event, session) => {
-          if (session) {
+          const { isInRegistrationFlow } = getRegisterState()
+          if (session && !isInRegistrationFlow) {
             login(session.access_token)
-          } else {
+          } else if (!session) {
             logout()
           }
         })

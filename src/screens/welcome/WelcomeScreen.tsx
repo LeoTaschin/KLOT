@@ -71,7 +71,7 @@ export function WelcomeScreen() {
 
   // Marca welcome como visto e navega para registro
   const handleCriarConta = () => {
-    completeWelcome('Register')
+    completeWelcome('RegisterInfo')
   }
 
   const handleLogin = () => {
