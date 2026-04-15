@@ -30,7 +30,7 @@ export const Colors = {
   },
   status: {
     debt: '#EF4444',        // Vermelho (débito)
-    credit: '#22C55E',      // Verde (crédito)
+    credit: '#0F766E',      // Verde (crédito)
     settled: '#94A3B8',     // Cinza (resolvido)
     debtBg: '#FEF2F2',      // Fundo vermelho claro
     creditBg: '#F0FDF4',    // Fundo verde claro
