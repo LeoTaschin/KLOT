@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, Image, StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { ScreenTransition } from '../../components/ScreenTransition'
 import { PersonIcon, Text } from '../../components/ui'
 import { Colors, Spacing } from '../../constants/theme'
 import { supabase } from '../../lib/supabase'
@@ -82,6 +83,7 @@ export function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <ScreenTransition>
       <View style={styles.card}>
 
         {/* Avatar */}
@@ -126,6 +128,7 @@ export function ProfileScreen() {
         )}
 
       </View>
+      </ScreenTransition>
     </SafeAreaView>
   )
 }

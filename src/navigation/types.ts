@@ -23,6 +23,51 @@ export type TabParamList = {
   Profile: undefined
 }
 
+// ─── App Stack (tabs + telas de fluxo) ───────────────────────────────────────
+
+export type AppStackParamList = {
+  Tabs: undefined
+  // Amigos
+  AddFriend: undefined
+  FriendProfile: { id: string; name: string; avatarUrl: string | null }
+  // Grupo
+  GroupFlow: undefined
+  GroupDetails: { id: string; name: string; category: string; avatarUrl: string | null }
+  // Dívida — modal com stack interno
+  DebtFlow: undefined
+}
+
+// ─── Group Stack (modal interno) ─────────────────────────────────────────────
+
+export type GroupStackParamList = {
+  CreateGroupName: undefined
+  CreateGroupMembers: { name: string; category: string }
+  CreateGroupReview: { name: string; category: string; memberIds: string[] }
+}
+
+// ─── Debt Stack (modal interno) ──────────────────────────────────────────────
+
+export type DebtStackParamList = {
+  DebtSelector: undefined
+  DebtValue: {
+    type: 'friend' | 'group'
+    targetId: string
+    targetName: string
+    avatarUrl: string | null
+  }
+  DebtReviewIndividual: {
+    friendId: string
+    friendName: string
+    avatarUrl: string | null
+    amount: number // em centavos
+  }
+  DebtReviewGroup: {
+    groupId: string
+    groupName: string
+    amount: number // em centavos
+  }
+}
+
 // ─── Root Navigator ───────────────────────────────────────────────────────────
 
 export type RootParamList = {
@@ -38,5 +83,5 @@ export type AuthScreenProps<T extends keyof AuthStackParamList> =
 
 export type TabScreenProps<T extends keyof TabParamList> = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, T>,
-  NativeStackScreenProps<RootParamList>
+  NativeStackScreenProps<AppStackParamList>
 >

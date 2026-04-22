@@ -2,12 +2,14 @@ import React from 'react'
 import { StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { ScreenTransition } from '../../components/ScreenTransition'
 import { Text } from '../../components/ui'
 import { Colors } from '../../constants/theme'
 
 export function ContasScreen() {
   return (
     <SafeAreaView style={styles.safe}>
+      <ScreenTransition>
       <View style={styles.center}>
         <Text variant="h2" color={Colors.neutral.primary}>
           Contas
@@ -16,6 +18,7 @@ export function ContasScreen() {
           Em breve
         </Text>
       </View>
+      </ScreenTransition>
     </SafeAreaView>
   )
 }

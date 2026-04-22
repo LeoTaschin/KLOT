@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useFocusEffect } from '@react-navigation/native'
 
 import { BalanceCard, type BalanceData } from '../../components/BalanceCard'
+import { ScreenTransition } from '../../components/ScreenTransition'
 import { ExpensesShortcut, type ExpenseCategory, type ExpenseItem } from '../../components/ExpensesShortcut'
 import { FriendShortcut, type FriendItem } from '../../components/FriendShortcut'
 import { HomeShortcuts } from '../../components/HomeShortcuts'
@@ -60,7 +62,7 @@ export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
   const [friends, setFriends] = useState<FriendItem[]>([])
   const [expenses, setExpenses] = useState<ExpenseItem[]>([])
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     async function loadAll() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
@@ -134,25 +136,27 @@ export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
       setExpenses(mappedExpenses)
 
       // ── Amigos ──
-      const allFriends: FriendItem[] = [
-        ...(friendsReqRes.data ?? []).map((f: any) => ({
-          id: f.id,
-          name: f.profiles?.name ?? 'Amigo',
-          avatarUrl: f.profiles?.avatar_url ?? null,
+      const seen = new Set<string>()
+      const allFriends: FriendItem[] = []
+      for (const f of [
+        ...(friendsReqRes.data ?? []).map((f: any) => ({ profileId: f.profiles?.id, name: f.profiles?.name, avatarUrl: f.profiles?.avatar_url })),
+        ...(friendsAddRes.data ?? []).map((f: any) => ({ profileId: f.profiles?.id, name: f.profiles?.name, avatarUrl: f.profiles?.avatar_url })),
+      ]) {
+        if (!f.profileId || seen.has(f.profileId)) continue
+        seen.add(f.profileId)
+        allFriends.push({
+          id: f.profileId,
+          name: f.name ?? 'Amigo',
+          avatarUrl: f.avatarUrl ?? null,
           statusParts: [{ text: 'Amigo' }],
-        })),
-        ...(friendsAddRes.data ?? []).map((f: any) => ({
-          id: f.id,
-          name: f.profiles?.name ?? 'Amigo',
-          avatarUrl: f.profiles?.avatar_url ?? null,
-          statusParts: [{ text: 'Amigo' }],
-        })),
-      ].slice(0, 3)
+        })
+        if (allFriends.length === 3) break
+      }
       setFriends(allFriends)
     }
 
     loadAll()
-  }, [])
+  }, []))
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -161,6 +165,7 @@ export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <ScreenTransition>
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -185,6 +190,13 @@ export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
         <FriendShortcut
           friends={friends}
           onViewAll={() => navigation.navigate('Grupos')}
+          onPressFriend={(item) =>
+            navigation.navigate('FriendProfile', {
+              id: item.id,
+              name: item.name,
+              avatarUrl: item.avatarUrl ?? null,
+            })
+          }
         />
 
         {/* ── Despesas recentes ── */}
@@ -201,6 +213,7 @@ export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
         </TouchableOpacity>
 
       </ScrollView>
+      </ScreenTransition>
     </SafeAreaView>
   )
 }

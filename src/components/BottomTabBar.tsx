@@ -1,7 +1,6 @@
 import React, { useRef } from 'react'
 import {
   Animated,
-  Platform,
   Pressable,
   StyleSheet,
   TouchableOpacity,
@@ -9,6 +8,8 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import type { AppStackParamList } from '../navigation/types'
 
 import { AddIcon, ContasIcon, GruposIcon, HomeIcon, PersonIcon } from './ui'
 import { Colors, Shadows, Spacing } from '../constants/theme'
@@ -26,13 +27,12 @@ const TAB_ITEMS: Array<{
   { name: 'Profile', label: 'Perfil',  Icon: PersonIcon  },
 ]
 
-const FAB_ROUTE = 'AddTransaction' // rota que o FAB vai abrir (futura)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // COMPONENTE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+export function BottomTabBar({ state, navigation }: BottomTabBarProps) {
   const { bottom } = useSafeAreaInsets()
 
   // Animação de escala para o FAB
@@ -55,8 +55,9 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
   }
 
   const handleFab = () => {
-    // Futuramente: navigation.navigate(FAB_ROUTE)
-    console.log('[FAB] pressed')
+    navigation
+      .getParent<NativeStackNavigationProp<AppStackParamList>>('AppStack')
+      ?.navigate('DebtFlow')
   }
 
   return (

@@ -2,7 +2,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack'
 
 import { WelcomeScreen } from '../screens/welcome/WelcomeScreen'
 import { useAuthStore } from '../store/useAuthStore'
-import { AppNavigator } from './AppNavigator'
+import { AppStackNavigator } from './AppStackNavigator'
 import { AuthNavigator } from './AuthNavigator'
 import type { RootParamList } from './types'
 
@@ -15,7 +15,7 @@ export function RootNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
       {isAuthenticated ? (
-        <Stack.Screen name="App" component={AppNavigator} />
+        <Stack.Screen name="App" component={AppStackNavigator} />
       ) : !hasSeenWelcome ? (
         <Stack.Screen name="Welcome" component={WelcomeScreen} />
       ) : (
