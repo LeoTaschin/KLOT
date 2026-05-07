@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react'
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native'
 
@@ -11,7 +11,6 @@ import { HomeShortcuts } from '../../components/HomeShortcuts'
 import { Text } from '../../components/ui'
 import { Colors, Radius, Shadows, Spacing } from '../../constants/theme'
 import { supabase } from '../../lib/supabase'
-import { useAuthStore } from '../../store/useAuthStore'
 import type { TabScreenProps } from '../../navigation/types'
 
 // ═══════════════════════════════════════════════════════════════════
@@ -55,8 +54,6 @@ function formatExpenseDate(dateStr: string): string {
 // ═══════════════════════════════════════════════════════════════════
 
 export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
-  const logout = useAuthStore((state) => state.logout)
-
   const [firstName, setFirstName] = useState('')
   const [balance, setBalance] = useState<BalanceData>({ theyOweMe: 0, iOweThem: 0 })
   const [friends, setFriends] = useState<FriendItem[]>([])
@@ -158,11 +155,6 @@ export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
     loadAll()
   }, []))
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    logout()
-  }
-
   return (
     <SafeAreaView style={styles.safe}>
       <ScreenTransition>
@@ -205,12 +197,6 @@ export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
           onViewAll={() => navigation.navigate('Contas')}
         />
 
-        {/* ── Sair (temporário) ── */}
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn} activeOpacity={0.7}>
-          <Text variant="caption" color={Colors.neutral.placeholder}>
-            Sair da conta
-          </Text>
-        </TouchableOpacity>
 
       </ScrollView>
       </ScreenTransition>
@@ -245,9 +231,5 @@ const styles = StyleSheet.create({
   },
   greetingSub: {
     marginTop: 2,
-  },
-  logoutBtn: {
-    alignSelf: 'center',
-    paddingVertical: Spacing.sm,
   },
 })

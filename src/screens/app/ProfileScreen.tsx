@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react'
-import { ActivityIndicator, Image, StyleSheet, View } from 'react-native'
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import Svg, { Path } from 'react-native-svg'
 
 import { ScreenTransition } from '../../components/ScreenTransition'
-import { PersonIcon, Text } from '../../components/ui'
-import { Colors, Spacing } from '../../constants/theme'
+import { ProfileHeader } from '../../components/profile/ProfileHeader'
+import { SettingsItem } from '../../components/profile/SettingsItem'
+import { SettingsSection } from '../../components/profile/SettingsSection'
+import { PersonIcon, PixIcon, Text } from '../../components/ui'
+import { Colors, Radius, Shadows, Spacing } from '../../constants/theme'
 import { supabase } from '../../lib/supabase'
 
 // ═══════════════════════════════════════════════════════════════════
@@ -15,24 +19,73 @@ interface Profile {
   name: string
   username: string
   email: string
-  date_of_birth: string | null
+  pix_key: string | null
   avatar_url: string | null
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// HELPERS
+// ÍCONES INLINE
 // ═══════════════════════════════════════════════════════════════════
 
-function calcAge(dateStr: string | null): number | null {
-  if (!dateStr) return null
-  const birth = new Date(dateStr)
-  const now = new Date()
-  let age = now.getFullYear() - birth.getFullYear()
-  const notYet =
-    now.getMonth() < birth.getMonth() ||
-    (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate())
-  if (notYet) age--
-  return age
+function LockIcon({ size = 18, color = '#fff' }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M17 11H7V8a5 5 0 0 1 10 0v3Z"
+        stroke={color} strokeWidth={2} strokeLinejoin="round"
+      />
+      <Path
+        d="M5 11h14v10H5V11Z"
+        stroke={color} strokeWidth={2} strokeLinejoin="round"
+      />
+      <Path d="M12 15v2" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  )
+}
+
+function LogoutIcon({ size = 18, color = '#fff' }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"
+        stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+      />
+      <Path
+        d="M10 17l5-5-5-5M15 12H3"
+        stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+      />
+    </Svg>
+  )
+}
+
+function BellIcon({ size = 18, color = '#fff' }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"
+        stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+      />
+      <Path
+        d="M13.73 21a2 2 0 0 1-3.46 0"
+        stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+      />
+    </Svg>
+  )
+}
+
+function GlobeIcon({ size = 18, color = '#fff' }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2Z"
+        stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+      />
+      <Path
+        d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z"
+        stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+      />
+    </Svg>
+  )
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -50,16 +103,26 @@ export function ProfileScreen() {
 
       const { data } = await supabase
         .from('profiles')
-        .select('name, username, email, date_of_birth, avatar_url')
+        .select('name, username, email, pix_key, avatar_url')
         .eq('id', user.id)
         .single()
 
-      console.log('[Profile] data:', JSON.stringify(data))
       setProfile(data)
       setLoading(false)
     }
     load()
   }, [])
+
+  const handleLogout = () => {
+    Alert.alert('Sair', 'Tem certeza que quer sair da conta?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Sair',
+        style: 'destructive',
+        onPress: () => supabase.auth.signOut(),
+      },
+    ])
+  }
 
   if (loading) {
     return (
@@ -72,62 +135,79 @@ export function ProfileScreen() {
   if (!profile) {
     return (
       <SafeAreaView style={styles.safe}>
-        <Text variant="body" color={Colors.neutral.secondary}>
-          Perfil não encontrado.
-        </Text>
+        <Text variant="body" color={Colors.neutral.secondary}>Perfil não encontrado.</Text>
       </SafeAreaView>
     )
   }
 
-  const age = calcAge(profile.date_of_birth)
-
   return (
     <SafeAreaView style={styles.safe}>
       <ScreenTransition>
-      <View style={styles.card}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+        >
 
-        {/* Avatar */}
-        {profile.avatar_url ? (
-          <Image
-            source={{ uri: profile.avatar_url }}
-            style={styles.avatar}
-            resizeMode="cover"
-            onError={(e) => console.log('[Profile] image error:', e.nativeEvent)}
-            onLoad={() => console.log('[Profile] image loaded!')}
+          {/* ── Header com info do usuário ── */}
+          <ProfileHeader
+            name={profile.name}
+            username={profile.username}
+            email={profile.email}
+            avatarUrl={profile.avatar_url}
           />
-        ) : (
-          <View style={styles.avatarFallback}>
-            <PersonIcon size={48} color={Colors.neutral.placeholder} />
-          </View>
-        )}
 
-        {/* Nome */}
-        <Text variant="h2" color={Colors.neutral.primary} style={styles.name}>
-          {profile.name}
-        </Text>
+          {/* ── Seção Conta ── */}
+          <SettingsSection title="Conta">
+            <SettingsItem
+              icon={<PersonIcon size={18} color={Colors.brand.primary} />}
+              iconBg={Colors.brand.xlight}
+              label="Editar perfil"
+              onPress={() => Alert.alert('Em breve')}
+            />
+            <SettingsItem
+              icon={<PixIcon size={18} color={Colors.brand.primary} />}
+              iconBg={Colors.brand.xlight}
+              label="Chave PIX"
+              value={profile.pix_key ?? 'Não cadastrada'}
+              onPress={() => Alert.alert('Em breve')}
+            />
+            <SettingsItem
+              icon={<LockIcon size={18} color={Colors.neutral.secondary} />}
+              iconBg={Colors.neutral.border}
+              label="Alterar senha"
+              onPress={() => Alert.alert('Em breve')}
+            />
+          </SettingsSection>
 
-        {/* Username */}
-        <Text variant="body" color={Colors.brand.primary} weight="600">
-          @{profile.username}
-        </Text>
+          {/* ── Preferências ── */}
+          <SettingsSection title="Preferências">
+            <SettingsItem
+              icon={<BellIcon size={18} color={Colors.brand.primary} />}
+              iconBg={Colors.brand.xlight}
+              label="Notificações"
+              onPress={() => Alert.alert('Em breve')}
+            />
+            <SettingsItem
+              icon={<GlobeIcon size={18} color={Colors.brand.primary} />}
+              iconBg={Colors.brand.xlight}
+              label="Idioma"
+              value="Português"
+              onPress={() => Alert.alert('Em breve')}
+            />
+          </SettingsSection>
 
-        {/* Divider */}
-        <View style={styles.divider} />
+          {/* ── Logout ── */}
+          <SettingsSection title="Sessão">
+            <SettingsItem
+              icon={<LogoutIcon size={18} color={Colors.status.debt} />}
+              iconBg={Colors.status.debtBg}
+              label="Sair da conta"
+              onPress={handleLogout}
+              danger
+            />
+          </SettingsSection>
 
-        {/* Infos */}
-        <View style={styles.infoRow}>
-          <Text variant="caption" color={Colors.neutral.secondary}>Email</Text>
-          <Text variant="label" color={Colors.neutral.primary}>{profile.email}</Text>
-        </View>
-
-        {age !== null && (
-          <View style={styles.infoRow}>
-            <Text variant="caption" color={Colors.neutral.secondary}>Idade</Text>
-            <Text variant="label" color={Colors.neutral.primary}>{age} anos</Text>
-          </View>
-        )}
-
-      </View>
+        </ScrollView>
       </ScreenTransition>
     </SafeAreaView>
   )
@@ -137,58 +217,15 @@ export function ProfileScreen() {
 // ESTILOS
 // ═══════════════════════════════════════════════════════════════════
 
-const AVATAR_SIZE = 100
-
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: Colors.neutral.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  card: {
-    width: '85%',
-    backgroundColor: Colors.neutral.white,
-    borderRadius: 20,
-    padding: Spacing.xl,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
-  },
-  avatar: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-    marginBottom: Spacing.md,
-  },
-  avatarFallback: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: Colors.neutral.surface,
-    borderWidth: 2,
-    borderColor: Colors.neutral.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.md,
-  },
-  name: {
-    marginBottom: Spacing.xs,
-  },
-  divider: {
-    width: '100%',
-    height: 1,
-    backgroundColor: Colors.neutral.border,
-    marginVertical: Spacing.lg,
-  },
-  infoRow: {
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
+  scroll: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.xl,
+    gap: Spacing.lg,
   },
 })

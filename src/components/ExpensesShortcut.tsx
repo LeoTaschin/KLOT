@@ -65,7 +65,7 @@ export function ExpensesShortcutItem({ item, onPress }: ExpensesShortcutItemProp
 
       {/* Ícone de categoria */}
       <View style={styles.iconWrap}>
-        <Icon size={22} color={Colors.neutral.white} />
+        <Icon size={22} color={Colors.brand.primary} />
       </View>
 
       {/* Título + data */}
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     width: ICON_SIZE,
     height: ICON_SIZE,
     borderRadius: Radius.md,
-    backgroundColor: Colors.brand.primary,
+    backgroundColor: Colors.brand.xlight,
     alignItems: 'center',
     justifyContent: 'center',
   },
