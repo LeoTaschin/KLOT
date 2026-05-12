@@ -6,6 +6,7 @@ import type { AppStackParamList } from './types'
 import { AddFriendScreen } from '../screens/app/amigos/AddFriendScreen'
 import { FriendProfileScreen } from '../screens/app/amigos/FriendProfileScreen'
 import { GroupDetailsScreen } from '../screens/app/grupos/GroupDetailsScreen'
+import { DebtDetailScreen } from '../screens/app/DebtDetailScreen'
 import { GroupStackNavigator } from './GroupStackNavigator'
 import { DebtStackNavigator } from './DebtStackNavigator'
 
@@ -39,6 +40,13 @@ export function AppStackNavigator() {
         name="GroupFlow"
         component={GroupStackNavigator}
         options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+      />
+
+      {/* Detalhe de dívida */}
+      <Stack.Screen
+        name="DebtDetail"
+        component={DebtDetailScreen}
+        options={{ animation: 'slide_from_right' }}
       />
 
       {/* Dívida — modal com stack interno */}

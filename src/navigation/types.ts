@@ -35,6 +35,19 @@ export type AppStackParamList = {
   GroupDetails: { id: string; name: string; category: string; avatarUrl: string | null }
   // Dívida — modal com stack interno
   DebtFlow: undefined
+  // Detalhe de dívida
+  DebtDetail: {
+    id: string
+    title: string
+    category: string
+    amount: number
+    personName: string
+    avatarUrl: string | null
+    groupId: string | null
+    groupName: string | null
+    direction: 'owe' | 'credit'
+    date: string
+  }
 }
 
 // ─── Group Stack (modal interno) ─────────────────────────────────────────────

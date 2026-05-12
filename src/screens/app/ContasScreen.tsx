@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import {
-  Alert,
   Animated,
   SectionList,
   StyleSheet,
@@ -15,6 +14,7 @@ import { ScreenTransition } from '../../components/ScreenTransition'
 import { Text } from '../../components/ui'
 import { Colors, Radius, Shadows, Spacing } from '../../constants/theme'
 import { supabase } from '../../lib/supabase'
+import type { TabScreenProps } from '../../navigation/types'
 
 // ═══════════════════════════════════════════════════════════════════
 // TIPOS
@@ -72,7 +72,7 @@ function groupByPeriod(items: DebtDetail[]): Section[] {
 // COMPONENTE
 // ═══════════════════════════════════════════════════════════════════
 
-export function ContasScreen() {
+export function ContasScreen({ navigation }: TabScreenProps<'Contas'>) {
   const [direction, setDirection] = useState<Direction>('owe')
   const slideAnim = useRef(new Animated.Value(0)).current
   const [selectedChip, setSelectedChip] = useState<ChipId>('all')
@@ -223,42 +223,24 @@ export function ContasScreen() {
     return groupByPeriod(sorted)
   }, [direction, oweItems, creditItems, selectedChip])
 
-  // ── Quitar dívida ────────────────────────────────────────────────
-  const handleQuitar = (item: DebtDetail) => {
-    Alert.alert(
-      'Quitar dívida',
-      `Marcar "${item.title}" (R$ ${item.amount.toFixed(2).replace('.', ',')}) como pago?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Quitar',
-          style: 'default',
-          onPress: async () => {
-            const { error } = await supabase
-              .from('expense_splits')
-              .update({ paid: true })
-              .eq('id', item.id)
-
-            if (error) {
-              Alert.alert('Erro', 'Não foi possível quitar a dívida.')
-            } else {
-              // Remove da lista local imediatamente
-              if (item.direction === 'owe') {
-                setOweItems((prev) => prev.filter((i) => i.id !== item.id))
-              } else {
-                setCreditItems((prev) => prev.filter((i) => i.id !== item.id))
-              }
-            }
-          },
-        },
-      ]
-    )
+  const handlePress = (item: DebtDetail) => {
+    navigation.navigate('DebtDetail', item)
   }
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScreenTransition>
         <View style={styles.flex}>
+
+          {/* ── Header ── */}
+          <View style={styles.header}>
+            <Text variant="h1" color={Colors.neutral.primary} weight="800">
+              Contas
+            </Text>
+            <Text variant="body" color={Colors.neutral.secondary}>
+              Veja o que você deve e o que te devem
+            </Text>
+          </View>
 
           {/* ── Toggle Você deve / Te devem ── */}
           <View style={styles.selector}>
@@ -335,7 +317,7 @@ export function ContasScreen() {
               </View>
             )}
             renderItem={({ item }) => (
-              <DebtDetailItem item={item} onPress={handleQuitar} />
+              <DebtDetailItem item={item} onPress={handlePress} />
             )}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
             ListEmptyComponent={
@@ -367,11 +349,17 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
+  header: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+
   // Seletor — mesmo padrão do GruposScreen
   selector: {
     flexDirection: 'row',
     marginHorizontal: Spacing.lg,
-    marginTop: Spacing.lg,
     marginBottom: Spacing.md,
     backgroundColor: Colors.neutral.surface,
     borderRadius: Radius.full,
