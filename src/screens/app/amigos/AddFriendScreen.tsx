@@ -161,11 +161,29 @@ export function AddFriendScreen({ navigation }: Props) {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      await supabase.from('friendships').insert({
-        requester_id: user.id,
-        addressee_id: target.id,
-        status: 'pending',
-      })
+      // Se existe registro 'declined' (em qualquer direção), reativa como 'pending'
+      const { data: existing } = await supabase
+        .from('friendships')
+        .select('id')
+        .or(
+          `and(requester_id.eq.${user.id},addressee_id.eq.${target.id}),` +
+          `and(requester_id.eq.${target.id},addressee_id.eq.${user.id})`
+        )
+        .eq('status', 'declined')
+        .maybeSingle()
+
+      if (existing) {
+        await supabase
+          .from('friendships')
+          .update({ status: 'pending', requester_id: user.id, addressee_id: target.id })
+          .eq('id', existing.id)
+      } else {
+        await supabase.from('friendships').insert({
+          requester_id: user.id,
+          addressee_id: target.id,
+          status: 'pending',
+        })
+      }
 
       const { data: me } = await supabase.from('profiles').select('name').eq('id', user.id).single()
       notifyUser(target.id, 'Nova solicitação de amizade', `${me?.name ?? 'Alguém'} quer ser seu amigo no KLOT.`)
@@ -203,7 +221,7 @@ export function AddFriendScreen({ navigation }: Props) {
     try {
       await supabase
         .from('friendships')
-        .delete()
+        .update({ status: 'declined' })
         .eq('id', req.friendshipId)
 
       setRequests((prev) => prev.filter((r) => r.friendshipId !== req.friendshipId))
