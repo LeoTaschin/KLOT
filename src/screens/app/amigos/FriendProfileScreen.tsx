@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   Share,
@@ -64,6 +65,16 @@ function BackIcon() {
       <Path d="M19 12H5M5 12L12 19M5 12L12 5"
         stroke={Colors.neutral.primary} strokeWidth={2}
         strokeLinecap="round" strokeLinejoin="round"
+      />
+    </Svg>
+  )
+}
+
+function MoreIcon() {
+  return (
+    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM19 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM5 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"
+        fill={Colors.neutral.secondary} stroke={Colors.neutral.secondary} strokeWidth={1.5} strokeLinecap="round"
       />
     </Svg>
   )
@@ -185,6 +196,32 @@ export function FriendProfileScreen({ navigation, route }: Props) {
     }, [friendId])
   )
 
+  const handleRemoveFriend = () => {
+    Alert.alert(
+      'Remover amigo',
+      `Tem certeza que quer remover ${firstName} da sua lista de amigos?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Remover',
+          style: 'destructive',
+          onPress: async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+            await supabase
+              .from('friendships')
+              .delete()
+              .or(
+                `and(requester_id.eq.${user.id},addressee_id.eq.${friendId}),` +
+                `and(requester_id.eq.${friendId},addressee_id.eq.${user.id})`
+              )
+            navigation.goBack()
+          },
+        },
+      ]
+    )
+  }
+
   const handlePixShare = async () => {
     if (!extra?.pixKey) return
     await Share.share({ message: extra.pixKey, title: `Chave PIX de ${firstName}` })
@@ -202,6 +239,9 @@ export function FriendProfileScreen({ navigation, route }: Props) {
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={12}>
             <BackIcon />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleRemoveFriend} style={styles.removeBtn} hitSlop={12}>
+            <MoreIcon />
           </TouchableOpacity>
         </View>
 
@@ -423,6 +463,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.neutral.white,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
@@ -431,6 +474,14 @@ const styles = StyleSheet.create({
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  removeBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radius.full,
+    backgroundColor: Colors.neutral.surface,
   },
   scroll: {
     paddingHorizontal: Spacing.lg,
