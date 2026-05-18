@@ -14,6 +14,7 @@ import Svg, { Path, Rect } from 'react-native-svg'
 import { ScreenTransition } from '../../../components/ScreenTransition'
 import { Text } from '../../../components/ui'
 import { Colors, Radius, Shadows, Spacing } from '../../../constants/theme'
+import { notifyUser } from '../../../lib/notifications'
 import { supabase } from '../../../lib/supabase'
 import type { PaymentStackParamList } from '../../../navigation/types'
 
@@ -146,6 +147,12 @@ export function PaymentSelectorScreen({ navigation, route }: Props) {
   const handleContinue = () => {
     if (selected.size === 0) return
     setSubmitting(true)
+
+    if (direction === 'charge') {
+      const amountStr = `R$ ${(total).toFixed(2).replace('.', ',')}`
+      notifyUser(friendId, 'Você tem um lembrete de pagamento', `${amountStr} estão te esperando no KLOT.`)
+    }
+
     navigation.navigate('PaymentCheckout', {
       friendId,
       friendName,

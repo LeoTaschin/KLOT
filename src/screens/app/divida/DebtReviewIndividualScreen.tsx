@@ -16,6 +16,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { ScreenTransition } from '../../../components/ScreenTransition'
 import { PersonIcon, Text } from '../../../components/ui'
 import { Colors, Radius, Shadows, Spacing } from '../../../constants/theme'
+import { notifyUser } from '../../../lib/notifications'
 import { supabase } from '../../../lib/supabase'
 import type { DebtStackParamList } from '../../../navigation/types'
 
@@ -103,6 +104,12 @@ export function DebtReviewIndividualScreen({ navigation, route }: Props) {
         })
 
       if (splitError) throw splitError
+
+      notifyUser(
+        friendId,
+        'Nova dívida registrada',
+        `Você deve ${formatBRL(amount)} — "${title.trim()}"`,
+      )
 
       Alert.alert('Dívida registrada!', `${friendName} agora te deve ${formatBRL(amount)}.`, [
         { text: 'OK', onPress: () => navigation.getParent()?.goBack() },

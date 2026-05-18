@@ -16,6 +16,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { ScreenTransition } from '../../../components/ScreenTransition'
 import { Text } from '../../../components/ui'
 import { Colors, Radius, Shadows, Spacing } from '../../../constants/theme'
+import { notifyUser } from '../../../lib/notifications'
 import { supabase } from '../../../lib/supabase'
 import type { DebtStackParamList } from '../../../navigation/types'
 
@@ -157,6 +158,14 @@ export function DebtReviewGroupScreen({ navigation, route }: Props) {
         .insert(splits)
 
       if (splitError) throw splitError
+
+      Array.from(selectedIds).forEach((memberId) =>
+        notifyUser(
+          memberId,
+          `Nova dívida em "${groupName}"`,
+          `Você deve ${formatBRL(perPerson)} — "${title.trim()}"`,
+        )
+      )
 
       Alert.alert(
         'Dívida registrada!',

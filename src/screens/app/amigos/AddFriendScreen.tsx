@@ -16,6 +16,7 @@ import Svg, { Circle, Path } from 'react-native-svg'
 
 import { PersonIcon, Text } from '../../../components/ui'
 import { Colors, Radius, Shadows, Spacing } from '../../../constants/theme'
+import { notifyUser } from '../../../lib/notifications'
 import { supabase } from '../../../lib/supabase'
 import type { AppStackParamList } from '../../../navigation/types'
 
@@ -38,6 +39,7 @@ interface UserResult {
 
 interface FriendRequest {
   friendshipId: string
+  requesterId: string
   user: {
     id: string
     name: string
@@ -93,6 +95,7 @@ export function AddFriendScreen({ navigation }: Props) {
         .filter((row: any) => row.profiles)
         .map((row: any) => ({
           friendshipId: row.id,
+          requesterId: row.profiles.id,
           user: row.profiles,
         }))
 
@@ -164,6 +167,9 @@ export function AddFriendScreen({ navigation }: Props) {
         status: 'pending',
       })
 
+      const { data: me } = await supabase.from('profiles').select('name').eq('id', user.id).single()
+      notifyUser(target.id, 'Nova solicitação de amizade', `${me?.name ?? 'Alguém'} quer ser seu amigo no KLOT.`)
+
       setResults((prev) =>
         prev.map((r) => r.id === target.id ? { ...r, requestSent: true } : r)
       )
@@ -175,10 +181,16 @@ export function AddFriendScreen({ navigation }: Props) {
   const handleAccept = async (req: FriendRequest) => {
     setActing(req.friendshipId)
     try {
+      const { data: { user } } = await supabase.auth.getUser()
       await supabase
         .from('friendships')
         .update({ status: 'accepted' })
         .eq('id', req.friendshipId)
+
+      if (user) {
+        const { data: me } = await supabase.from('profiles').select('name').eq('id', user.id).single()
+        notifyUser(req.requesterId, 'Solicitação aceita!', `${me?.name ?? 'Seu amigo'} aceitou seu pedido de amizade.`)
+      }
 
       setRequests((prev) => prev.filter((r) => r.friendshipId !== req.friendshipId))
     } finally {

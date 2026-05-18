@@ -12,6 +12,7 @@ import { useFocusEffect } from '@react-navigation/native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 import { ScreenTransition } from '../../../components/ScreenTransition'
+import { notifyUser } from '../../../lib/notifications'
 import {
   CasaIcon,
   ContasIcon,
@@ -96,12 +97,21 @@ export function CreateGroupReviewScreen({ navigation, route }: Props) {
   const handleCreate = async () => {
     setSaving(true)
     try {
+      const { data: { user } } = await supabase.auth.getUser()
       const { error } = await supabase.rpc('create_group', {
         p_name: name,
         p_category: category,
         p_member_ids: memberIds,
       })
       if (error) throw error
+
+      if (user && memberIds.length > 0) {
+        const { data: me } = await supabase.from('profiles').select('name').eq('id', user.id).single()
+        memberIds.forEach((id) =>
+          notifyUser(id, `Você foi adicionado a "${name}"`, `${me?.name ?? 'Alguém'} adicionou você ao grupo.`)
+        )
+      }
+
       Alert.alert('Grupo criado!', `"${name}" está pronto para usar.`, [
         { text: 'OK', onPress: () => navigation.getParent()?.goBack() },
       ])

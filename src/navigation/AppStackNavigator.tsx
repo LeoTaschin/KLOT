@@ -1,7 +1,9 @@
+import { useEffect } from 'react'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 
 import { AppNavigator } from './AppNavigator'
 import type { AppStackParamList } from './types'
+import { registerForPushNotifications } from '../lib/notifications'
 
 import { AddFriendScreen } from '../screens/app/amigos/AddFriendScreen'
 import { FriendProfileScreen } from '../screens/app/amigos/FriendProfileScreen'
@@ -14,6 +16,8 @@ import { PaymentStackNavigator } from './PaymentStackNavigator'
 const Stack = createNativeStackNavigator<AppStackParamList>()
 
 export function AppStackNavigator() {
+  useEffect(() => { registerForPushNotifications() }, [])
+
   return (
     <Stack.Navigator id="AppStack" screenOptions={{ headerShown: false }}>
       {/* Tabs principais */}
