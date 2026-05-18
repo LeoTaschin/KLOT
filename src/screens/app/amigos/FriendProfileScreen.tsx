@@ -208,13 +208,13 @@ export function FriendProfileScreen({ navigation, route }: Props) {
           onPress: async () => {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
-            await supabase
-              .from('friendships')
-              .delete()
-              .or(
-                `and(requester_id.eq.${user.id},addressee_id.eq.${friendId}),` +
-                `and(requester_id.eq.${friendId},addressee_id.eq.${user.id})`
-              )
+            // Duas operações separadas cobrem ambas as direções (requester ↔ addressee)
+            await Promise.all([
+              supabase.from('friendships').delete()
+                .eq('requester_id', user.id).eq('addressee_id', friendId),
+              supabase.from('friendships').delete()
+                .eq('requester_id', friendId).eq('addressee_id', user.id),
+            ])
             navigation.goBack()
           },
         },
