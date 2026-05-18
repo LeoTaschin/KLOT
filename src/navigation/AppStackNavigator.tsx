@@ -9,6 +9,7 @@ import { GroupDetailsScreen } from '../screens/app/grupos/GroupDetailsScreen'
 import { DebtDetailScreen } from '../screens/app/DebtDetailScreen'
 import { GroupStackNavigator } from './GroupStackNavigator'
 import { DebtStackNavigator } from './DebtStackNavigator'
+import { PaymentStackNavigator } from './PaymentStackNavigator'
 
 const Stack = createNativeStackNavigator<AppStackParamList>()
 
@@ -53,6 +54,13 @@ export function AppStackNavigator() {
       <Stack.Screen
         name="DebtFlow"
         component={DebtStackNavigator}
+        options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+      />
+
+      {/* Pagamento PIX — modal com stack interno */}
+      <Stack.Screen
+        name="PaymentFlow"
+        component={PaymentStackNavigator}
         options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
       />
     </Stack.Navigator>

@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import {
   Animated,
-  SectionList,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -21,8 +21,7 @@ import type { TabScreenProps } from '../../navigation/types'
 // ═══════════════════════════════════════════════════════════════════
 
 type Direction = 'owe' | 'credit'
-
-type ChipId = 'all' | 'individual' | string // string = groupId
+type ChipId = 'all' | 'individual' | string
 
 interface Chip {
   id: ChipId
@@ -46,15 +45,11 @@ const MONTHS_PT = [
 function getPeriodKey(dateStr: string): string {
   const date = new Date(dateStr)
   const now = new Date()
-
-  // Início da semana (segunda-feira)
   const startOfWeek = new Date(now)
   const day = now.getDay()
   startOfWeek.setDate(now.getDate() - (day === 0 ? 6 : day - 1))
   startOfWeek.setHours(0, 0, 0, 0)
-
   if (date >= startOfWeek) return 'Esta semana'
-
   return `${MONTHS_PT[date.getMonth()]} ${date.getFullYear()}`
 }
 
@@ -88,8 +83,6 @@ export function ContasScreen({ navigation }: TabScreenProps<'Contas'>) {
           const { data: { user } } = await supabase.auth.getUser()
           if (!user) return
 
-          // ── Passo 1: splits com join simples a expenses ───────────
-          // Mesmo padrão do HomeScreen que funciona: sem joins de 3 níveis
           const [oweRes, creditRes] = await Promise.all([
             supabase
               .from('expense_splits')
@@ -108,7 +101,6 @@ export function ContasScreen({ navigation }: TabScreenProps<'Contas'>) {
           const oweRaw: any[] = (oweRes.data ?? []).filter((r: any) => r.expenses?.payer_id !== user.id)
           const creditRaw: any[] = creditRes.data ?? []
 
-          // ── Passo 2: nomes de todos os payers (owe) e devedores (credit) ──
           const payerIdSet = new Set<string>(oweRaw.map((r: any) => r.expenses?.payer_id).filter(Boolean))
           const debtorIdSet = new Set<string>(creditRaw.map((r: any) => r.user_id).filter(Boolean))
           const allProfileIds = Array.from(new Set([...payerIdSet, ...debtorIdSet]))
@@ -124,7 +116,6 @@ export function ContasScreen({ navigation }: TabScreenProps<'Contas'>) {
             profileAvatarMap = Object.fromEntries((profilesData ?? []).map((p: any) => [p.id, p.avatar_url ?? null]))
           }
 
-          // ── Passo 3: nomes dos grupos ──────────────────────────────
           const groupIdSet = new Set<string>()
           for (const r of [...oweRaw, ...creditRaw]) {
             if (r.expenses?.group_id) groupIdSet.add(r.expenses.group_id)
@@ -138,7 +129,6 @@ export function ContasScreen({ navigation }: TabScreenProps<'Contas'>) {
             groupNameMap = Object.fromEntries((groupsData ?? []).map((g: any) => [g.id, g.name]))
           }
 
-          // ── Mapeamento final ───────────────────────────────────────
           setOweItems(
             oweRaw.map((r: any) => ({
               id: r.id,
@@ -178,7 +168,6 @@ export function ContasScreen({ navigation }: TabScreenProps<'Contas'>) {
     }, [])
   )
 
-  // ── Chips dinâmicos ──────────────────────────────────────────────
   const chips = useMemo<Chip[]>(() => {
     const base: Chip[] = [
       { id: 'all', label: 'Todos' },
@@ -206,20 +195,16 @@ export function ContasScreen({ navigation }: TabScreenProps<'Contas'>) {
     }).start()
   }
 
-  // ── Filtragem + agrupamento ──────────────────────────────────────
   const sections = useMemo<Section[]>(() => {
     const items = direction === 'owe' ? oweItems : creditItems
-
     const filtered = items.filter((item) => {
       if (selectedChip === 'all') return true
       if (selectedChip === 'individual') return !item.groupId
       return item.groupId === selectedChip
     })
-
     const sorted = [...filtered].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     )
-
     return groupByPeriod(sorted)
   }, [direction, oweItems, creditItems, selectedChip])
 
@@ -283,53 +268,59 @@ export function ContasScreen({ navigation }: TabScreenProps<'Contas'>) {
             </TouchableOpacity>
           </View>
 
-          {/* ── Chips de filtro ── */}
-          <SectionList
-            sections={sections}
-            keyExtractor={(item) => item.id}
+          {/* ── Lista agrupada por período ── */}
+          <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContent}
-            ListHeaderComponent={
-              <View style={styles.chipsScroll}>
-                {chips.map((chip) => (
-                  <TouchableOpacity
-                    key={chip.id}
-                    style={[styles.chip, selectedChip === chip.id && styles.chipActive]}
-                    onPress={() => setSelectedChip(chip.id)}
-                    activeOpacity={0.7}
+          >
+            {/* Chips de filtro */}
+            <View style={styles.chipsRow}>
+              {chips.map((chip) => (
+                <TouchableOpacity
+                  key={chip.id}
+                  style={[styles.chip, selectedChip === chip.id && styles.chipActive]}
+                  onPress={() => setSelectedChip(chip.id)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    variant="caption"
+                    color={selectedChip === chip.id ? Colors.brand.primary : Colors.neutral.secondary}
+                    weight={selectedChip === chip.id ? '600' : '400'}
                   >
-                    <Text
-                      variant="caption"
-                      color={selectedChip === chip.id ? Colors.brand.primary : Colors.neutral.secondary}
-                      weight={selectedChip === chip.id ? '600' : '400'}
-                    >
-                      {chip.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                    {chip.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Seções por período */}
+            {sections.map((section) => (
+              <View key={section.title} style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text variant="caption" color={Colors.neutral.secondary} weight="600">
+                    {section.title.toUpperCase()}
+                  </Text>
+                </View>
+                <View style={styles.sectionCard}>
+                  {section.data.map((item, i) => (
+                    <React.Fragment key={item.id}>
+                      {i > 0 && <View style={styles.divider} />}
+                      <DebtDetailItem item={item} onPress={handlePress} />
+                    </React.Fragment>
+                  ))}
+                </View>
               </View>
-            }
-            renderSectionHeader={({ section }) => (
-              <View style={styles.sectionHeader}>
-                <Text variant="caption" color={Colors.neutral.secondary} weight="600">
-                  {section.title.toUpperCase()}
+            ))}
+
+            {/* Estado vazio */}
+            {!loading && sections.length === 0 && (
+              <View style={styles.empty}>
+                <Text variant="body" color={Colors.neutral.placeholder}>
+                  {direction === 'owe' ? 'Nenhuma dívida pendente' : 'Ninguém te deve nada'}
                 </Text>
               </View>
             )}
-            renderItem={({ item }) => (
-              <DebtDetailItem item={item} onPress={handlePress} />
-            )}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
-            ListEmptyComponent={
-              !loading ? (
-                <View style={styles.empty}>
-                  <Text variant="body" color={Colors.neutral.placeholder}>
-                    {direction === 'owe' ? 'Nenhuma dívida pendente' : 'Ninguém te deve nada'}
-                  </Text>
-                </View>
-              ) : null
-            }
-          />
+          </ScrollView>
 
         </View>
       </ScreenTransition>
@@ -356,7 +347,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
 
-  // Seletor — mesmo padrão do GruposScreen
+  // Seletor
   selector: {
     flexDirection: 'row',
     marginHorizontal: Spacing.lg,
@@ -384,11 +375,11 @@ const styles = StyleSheet.create({
   },
 
   // Chips
-  chipsScroll: {
+  chipsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
-    paddingBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   chip: {
     paddingHorizontal: Spacing.md,
@@ -407,14 +398,29 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.xl,
+    gap: Spacing.md,
+  },
+
+  // Seção estilo extrato
+  section: {
+    gap: Spacing.xs,
   },
   sectionHeader: {
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
     paddingLeft: 2,
+    paddingBottom: Spacing.xs,
   },
-  separator: {
-    height: Spacing.sm,
+  sectionCard: {
+    backgroundColor: Colors.neutral.white,
+    borderRadius: Radius.xl,
+    borderWidth: 0.5,
+    borderColor: Colors.neutral.border,
+    overflow: 'hidden',
+    ...Shadows.sm,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.neutral.border,
+    marginLeft: 72, // Spacing.md(16) + avatar(40) + gap(16)
   },
 
   // Vazia

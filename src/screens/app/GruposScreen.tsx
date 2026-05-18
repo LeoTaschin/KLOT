@@ -1,7 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react'
 import {
   Animated,
-  Image,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -16,18 +15,9 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import Svg, { Circle, Path } from 'react-native-svg'
 
 import { FriendItem, type FriendData } from '../../components/FriendItem'
+import { GroupItem, type GroupData } from '../../components/GroupItem'
 import { ScreenTransition } from '../../components/ScreenTransition'
-import {
-  CasaIcon,
-  ChevronRightIcon,
-  ContasIcon,
-  FestaIcon,
-  GruposIcon,
-  PersonIcon,
-  Text,
-  TrabalhoIcon,
-  ViagemIcon,
-} from '../../components/ui'
+import { GruposIcon, PersonIcon, Text } from '../../components/ui'
 import { Colors, Radius, Shadows, Spacing } from '../../constants/theme'
 import { supabase } from '../../lib/supabase'
 import type { AppStackParamList, TabParamList } from '../../navigation/types'
@@ -43,14 +33,6 @@ type Props = CompositeScreenProps<
   NativeStackScreenProps<AppStackParamList>
 >
 
-
-interface Group {
-  id: string
-  name: string
-  avatar_url: string | null
-  category: string
-}
-
 // ═══════════════════════════════════════════════════════════════════
 // COMPONENTE
 // ═══════════════════════════════════════════════════════════════════
@@ -60,8 +42,8 @@ export function GruposScreen({ navigation }: Props) {
   const slideAnim = useRef(new Animated.Value(0)).current
 
   const [pendingCount, setPendingCount] = useState(0)
-  const [friends, setFriendDatas] = useState<FriendData[]>([])
-  const [groups, setGroups] = useState<Group[]>([])
+  const [friends, setFriends] = useState<FriendData[]>([])
+  const [groups, setGroups] = useState<GroupData[]>([])
   const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState('')
 
@@ -121,7 +103,6 @@ export function GruposScreen({ navigation }: Props) {
           if (merged.length > 0) {
             const friendIds = merged.map((f) => f.id)
 
-            // O que cada amigo me deve: splits deles em despesas que eu paguei
             const [theyOweRes, iOweRes] = await Promise.all([
               supabase
                 .from('expense_splits')
@@ -138,7 +119,6 @@ export function GruposScreen({ navigation }: Props) {
                 .in('expenses.payer_id', friendIds),
             ])
 
-            // Saldo por amigo: positivo = me devem, negativo = devo
             const balanceMap: Record<string, number> = {}
 
             for (const row of theyOweRes.data ?? []) {
@@ -151,13 +131,9 @@ export function GruposScreen({ navigation }: Props) {
               }
             }
 
-            const withBalance = merged.map((f) => ({
-              ...f,
-              balance: balanceMap[f.id] ?? 0,
-            }))
-            setFriendDatas(withBalance)
+            setFriends(merged.map((f) => ({ ...f, balance: balanceMap[f.id] ?? 0 })))
           } else {
-            setFriendDatas(merged)
+            setFriends(merged)
           }
         } finally {
           setLoading(false)
@@ -180,7 +156,7 @@ export function GruposScreen({ navigation }: Props) {
 
   const isAmigos = activeTab === 'amigos'
 
-  const filteredFriendDatas = query.trim().length > 0
+  const filteredFriends = query.trim().length > 0
     ? friends.filter((f) =>
         f.name.toLowerCase().includes(query.toLowerCase()) ||
         f.username.toLowerCase().includes(query.toLowerCase())
@@ -291,14 +267,14 @@ export function GruposScreen({ navigation }: Props) {
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
             >
-              {!loading && filteredFriendDatas.length === 0 ? (
+              {!loading && filteredFriends.length === 0 ? (
                 <View style={styles.empty}>
                   <Text variant="body" color={Colors.neutral.placeholder}>
                     {query ? 'Nenhum amigo encontrado' : 'Você ainda não tem amigos'}
                   </Text>
                 </View>
               ) : (
-                filteredFriendDatas.map((friend) => (
+                filteredFriends.map((friend) => (
                   <FriendItem
                     key={friend.id}
                     friend={friend}
@@ -330,11 +306,11 @@ export function GruposScreen({ navigation }: Props) {
                   <GroupItem
                     key={group.id}
                     group={group}
-                    onPress={() => navigation.navigate('GroupDetails', {
-                      id: group.id,
-                      name: group.name,
-                      category: group.category,
-                      avatarUrl: group.avatar_url,
+                    onPress={(g) => navigation.navigate('GroupDetails', {
+                      id: g.id,
+                      name: g.name,
+                      category: g.category,
+                      avatarUrl: g.avatar_url,
                     })}
                   />
                 ))
@@ -345,49 +321,6 @@ export function GruposScreen({ navigation }: Props) {
         </View>
       </ScreenTransition>
     </SafeAreaView>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// GROUP ITEM
-// ═══════════════════════════════════════════════════════════════════
-
-const CATEGORY_CONFIG: Record<string, { label: string; Icon: React.FC<{ size?: number; color?: string }> }> = {
-  casa:     { label: 'Casa',     Icon: CasaIcon     },
-  trabalho: { label: 'Trabalho', Icon: TrabalhoIcon },
-  viagem:   { label: 'Viagem',   Icon: ViagemIcon   },
-  festa:    { label: 'Festa',    Icon: FestaIcon    },
-  amigos:   { label: 'Amigos',   Icon: GruposIcon   },
-  outro:    { label: 'Outro',    Icon: ContasIcon   },
-}
-
-function GroupItem({ group, onPress }: { group: Group; onPress?: () => void }) {
-  const config = CATEGORY_CONFIG[group.category] ?? CATEGORY_CONFIG.outro
-  const { Icon, label } = config
-
-  return (
-    <TouchableOpacity style={itemStyles.row} activeOpacity={0.7} onPress={onPress}>
-      {group.avatar_url ? (
-        <Image source={{ uri: group.avatar_url }} style={itemStyles.avatar} />
-      ) : (
-        <View style={itemStyles.avatarFallback}>
-          <Icon size={22} color={Colors.brand.primary} />
-        </View>
-      )}
-
-      <View style={itemStyles.info}>
-        <Text variant="label" color={Colors.neutral.primary} weight="600">
-          {group.name}
-        </Text>
-        <View style={itemStyles.categoryBadge}>
-          <Text variant="caption" color={Colors.neutral.secondary} weight="500">
-            {label}
-          </Text>
-        </View>
-      </View>
-
-      <ChevronRightIcon size={16} color={Colors.neutral.placeholder} />
-    </TouchableOpacity>
   )
 }
 
@@ -404,51 +337,6 @@ function SearchIcon() {
 // ═══════════════════════════════════════════════════════════════════
 // ESTILOS
 // ═══════════════════════════════════════════════════════════════════
-
-const AVATAR_SIZE = 46
-
-const itemStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    backgroundColor: Colors.neutral.white,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.neutral.border,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    ...Shadows.sm,
-  },
-  avatar: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-  },
-  avatarFallback: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: Radius.lg,
-    backgroundColor: Colors.brand.xlight,
-    borderWidth: 1,
-    borderColor: Colors.brand.light,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  info: {
-    flex: 1,
-    gap: 4,
-  },
-  categoryBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.neutral.surface,
-    borderWidth: 1,
-    borderColor: Colors.neutral.border,
-  },
-})
 
 const styles = StyleSheet.create({
   safe: {

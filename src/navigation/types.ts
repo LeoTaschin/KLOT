@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs'
-import type { CompositeScreenProps } from '@react-navigation/native'
+import type { CompositeScreenProps, NavigatorScreenParams } from '@react-navigation/native'
 
 // ─── Auth Stack ───────────────────────────────────────────────────────────────
 
@@ -48,6 +48,8 @@ export type AppStackParamList = {
     direction: 'owe' | 'credit'
     date: string
   }
+  // Pagamento PIX — modal com stack interno
+  PaymentFlow: NavigatorScreenParams<PaymentStackParamList>
 }
 
 // ─── Group Stack (modal interno) ─────────────────────────────────────────────
@@ -56,6 +58,26 @@ export type GroupStackParamList = {
   CreateGroupName: undefined
   CreateGroupMembers: { name: string; category: string }
   CreateGroupReview: { name: string; category: string; memberIds: string[] }
+}
+
+// ─── Payment Stack (modal interno) ───────────────────────────────────────────
+
+export type PaymentStackParamList = {
+  PaymentSelector: {
+    friendId: string
+    friendName: string
+    avatarUrl: string | null
+    direction: 'pay' | 'charge'
+  }
+  PaymentCheckout: {
+    friendId: string
+    friendName: string
+    avatarUrl: string | null
+    direction: 'pay' | 'charge'
+    amount: number
+    splitIds: string[]
+    pixKey: string | null
+  }
 }
 
 // ─── Debt Stack (modal interno) ──────────────────────────────────────────────

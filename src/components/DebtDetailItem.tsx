@@ -2,7 +2,7 @@ import React from 'react'
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import { PersonIcon, Text } from './ui'
-import { Colors, Radius, Shadows, Spacing } from '../constants/theme'
+import { Colors, Radius, Spacing } from '../constants/theme'
 
 export interface DebtDetail {
   id: string
@@ -26,8 +26,9 @@ export function DebtDetailItem({ item, onPress }: Props) {
   const firstName = item.personName.split(' ')[0]
   const amountStr = `R$ ${item.amount.toFixed(2).replace('.', ',')}`
   const isOwe = item.direction === 'owe'
-
+  const amountColor = isOwe ? Colors.status.debt : Colors.status.credit
   const subtitle = isOwe ? `Pago por ${firstName}` : `${firstName} te deve`
+  const dateStr = new Date(item.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
 
   return (
     <TouchableOpacity
@@ -59,9 +60,14 @@ export function DebtDetailItem({ item, onPress }: Props) {
         )}
       </View>
 
-      <Text variant="label" color={isOwe ? Colors.status.debt : Colors.status.credit} weight="700">
-        {amountStr}
-      </Text>
+      <View style={styles.right}>
+        <Text variant="label" color={amountColor} weight="700">
+          {amountStr}
+        </Text>
+        <Text variant="caption" color={Colors.neutral.secondary}>
+          {dateStr}
+        </Text>
+      </View>
     </TouchableOpacity>
   )
 }
@@ -73,13 +79,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    backgroundColor: Colors.neutral.white,
-    borderRadius: Radius.lg,
-    borderWidth: 0.5,
-    borderColor: Colors.neutral.border,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.md,
-    ...Shadows.sm,
   },
   avatar: {
     width: AVATAR_SIZE,
@@ -96,6 +97,10 @@ const styles = StyleSheet.create({
   },
   info: {
     flex: 1,
+    gap: 2,
+  },
+  right: {
+    alignItems: 'flex-end',
     gap: 2,
   },
   groupBadge: {
