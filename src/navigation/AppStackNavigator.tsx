@@ -18,6 +18,7 @@ import { GroupStackNavigator } from './GroupStackNavigator'
 import { DebtStackNavigator } from './DebtStackNavigator'
 import { ReceivePixScreen } from '../screens/app/ReceivePixScreen'
 import { PaymentStackNavigator } from './PaymentStackNavigator'
+import { ChargeStackNavigator } from './ChargeStackNavigator'
 
 const Stack = createNativeStackNavigator<AppStackParamList>()
 
@@ -105,6 +106,13 @@ export function AppStackNavigator() {
       <Stack.Screen
         name="PaymentFlow"
         component={PaymentStackNavigator}
+        options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+      />
+
+      {/* Cobrança PIX — modal com stack interno */}
+      <Stack.Screen
+        name="ChargeFlow"
+        component={ChargeStackNavigator}
         options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
       />
     </Stack.Navigator>

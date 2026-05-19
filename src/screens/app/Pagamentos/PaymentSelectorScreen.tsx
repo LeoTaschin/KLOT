@@ -27,6 +27,38 @@ function CloseIcon() {
   )
 }
 
+function ChevronIcon() {
+  return (
+    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+      <Path d="M9 18L15 12L9 6"
+        stroke={Colors.neutral.secondary} strokeWidth={2}
+        strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  )
+}
+
+function PixIcon() {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+      <Path d="M3 8C3 7.44772 3.44772 7 4 7H20C20.5523 7 21 7.44772 21 8V16C21 16.5523 20.5523 17 20 17H4C3.44772 17 3 16.5523 3 16V8Z"
+        stroke={Colors.brand.primary} strokeWidth={1.8} strokeLinejoin="round" />
+      <Path d="M7 10.5h.01M12 12a1 1 0 1 0 2 0 1 1 0 0 0-2 0z"
+        stroke={Colors.brand.primary} strokeWidth={1.8} strokeLinecap="round" />
+    </Svg>
+  )
+}
+
+function SliderIcon() {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+      <Path d="M4 6h16M4 12h16M4 18h16"
+        stroke={Colors.brand.primary} strokeWidth={1.8} strokeLinecap="round" />
+      <Path d="M8 4v4M16 10v4M10 16v4"
+        stroke={Colors.brand.primary} strokeWidth={1.8} strokeLinecap="round" />
+    </Svg>
+  )
+}
+
 function AvatarCircle({ uri, name }: { uri: string | null; name: string }) {
   const initials = name
     .split(' ')
@@ -120,36 +152,37 @@ export function PaymentSelectModeScreen({ navigation, route }: Props) {
             {/* ── Footer: ações ── */}
             <View style={styles.footer}>
               {hasDebt && (
-                <>
-                  <TouchableOpacity
-                    style={styles.primaryBtn}
-                    onPress={() =>
-                      navigation.navigate('PaymentPix', {
-                        friendId,
-                        friendName,
-                        avatarUrl: route.params.avatarUrl,
-                        pixKey,
-                        amount: totalAll,
-                        splitIds: allSplitIds,
-                      })
-                    }
-                    activeOpacity={0.85}
-                  >
-                    <Text variant="label" color={Colors.neutral.white} weight="700">
-                      Pagar {fmtBRL(totalAll)}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <View style={styles.orRow}>
-                    <View style={styles.orLine} />
-                    <Text variant="caption" color={Colors.neutral.placeholder}>ou</Text>
-                    <View style={styles.orLine} />
+                <TouchableOpacity
+                  style={styles.optionCard}
+                  onPress={() =>
+                    navigation.navigate('PaymentPix', {
+                      friendId,
+                      friendName,
+                      avatarUrl: route.params.avatarUrl,
+                      pixKey,
+                      amount: totalAll,
+                      splitIds: allSplitIds,
+                    })
+                  }
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.optionIconWrap}>
+                    <PixIcon />
                   </View>
-                </>
+                  <View style={styles.optionText}>
+                    <Text variant="label" color={Colors.neutral.primary} weight="700">
+                      Pagar tudo via PIX
+                    </Text>
+                    <Text variant="caption" color={Colors.neutral.secondary}>
+                      Pagar {fmtBRL(totalAll)} de uma vez
+                    </Text>
+                  </View>
+                  <ChevronIcon />
+                </TouchableOpacity>
               )}
 
               <TouchableOpacity
-                style={styles.secondaryBtn}
+                style={styles.optionCard}
                 onPress={() =>
                   navigation.navigate('PaymentValueSelector', {
                     friendId,
@@ -160,9 +193,18 @@ export function PaymentSelectModeScreen({ navigation, route }: Props) {
                 }
                 activeOpacity={0.85}
               >
-                <Text variant="label" color={Colors.brand.primary} weight="700">
-                  Escolher valor
-                </Text>
+                <View style={styles.optionIconWrap}>
+                  <SliderIcon />
+                </View>
+                <View style={styles.optionText}>
+                  <Text variant="label" color={Colors.neutral.primary} weight="700">
+                    Escolher valor
+                  </Text>
+                  <Text variant="caption" color={Colors.neutral.secondary}>
+                    Selecionar dívidas ou inserir valor
+                  </Text>
+                </View>
+                <ChevronIcon />
               </TouchableOpacity>
             </View>
           </>
@@ -210,7 +252,7 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: Colors.brand.xlight,
+    backgroundColor: Colors.neutral.white,
     borderWidth: 1,
     borderColor: Colors.brand.light,
     alignItems: 'center',
@@ -244,31 +286,29 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
     gap: Spacing.md,
   },
-  primaryBtn: {
-    height: 56,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.brand.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.sm,
-  },
-  orRow: {
+  optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
+    backgroundColor: Colors.neutral.white,
+    borderRadius: Radius.xl,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.neutral.border,
+    ...Shadows.sm,
   },
-  orLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.neutral.border,
-  },
-  secondaryBtn: {
-    height: 56,
-    borderRadius: Radius.full,
-    borderWidth: 1.5,
-    borderColor: Colors.brand.light,
+  optionIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.lg,
     backgroundColor: Colors.brand.xlight,
+    borderWidth: 1,
+    borderColor: Colors.brand.light,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  optionText: {
+    flex: 1,
+    gap: 2,
   },
 })

@@ -58,6 +58,8 @@ export type AppStackParamList = {
   ReceivePix: { amount?: number; friendName?: string }
   // Pagamento PIX — modal com stack interno
   PaymentFlow: NavigatorScreenParams<PaymentStackParamList>
+  // Cobrança PIX — modal com stack interno
+  ChargeFlow: NavigatorScreenParams<ChargeStackParamList>
 }
 
 // ─── Group Stack (modal interno) ─────────────────────────────────────────────
@@ -89,6 +91,33 @@ export type PaymentStackParamList = {
     pixKey: string | null
     amount: number
     splitIds: string[]
+  }
+}
+
+// ─── Charge Stack (modal interno) ────────────────────────────────────────────
+
+export type ChargeStackParamList = {
+  ChargeSelectMode: {
+    friendId: string
+    friendName: string
+    avatarUrl: string | null
+  }
+  ChargeValueSelector: {
+    friendId: string
+    friendName: string
+    avatarUrl: string | null
+  }
+  ChargeQRCode: {
+    friendId: string
+    friendName: string
+    amount: number
+    splitIds: string[]
+  }
+  ChargeNotificationConfirm: {
+    friendId: string
+    friendName: string
+    avatarUrl: string | null
+    amount: number
   }
 }
 

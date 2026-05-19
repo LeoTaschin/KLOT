@@ -383,9 +383,9 @@ export function FriendProfileScreen({ navigation, route }: Props) {
               <TouchableOpacity
                 style={styles.actionItem}
                 activeOpacity={0.75}
-                onPress={() => navigation.navigate('ReceivePix', {
-                  amount: theyOweMe > 0 ? theyOweMe : undefined,
-                  friendName: name,
+                onPress={() => navigation.navigate('ChargeFlow', {
+                  screen: 'ChargeSelectMode',
+                  params: { friendId, friendName: name, avatarUrl: avatarUrl ?? null },
                 })}
               >
                 <View style={[styles.actionCircle, styles.actionCircleCharge]}>
