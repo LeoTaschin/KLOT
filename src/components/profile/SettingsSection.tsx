@@ -41,8 +41,9 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.neutral.white,
     borderRadius: Radius.xl,
+    borderWidth: 1,
+    borderColor: Colors.neutral.border,
     overflow: 'hidden',
-    ...Shadows.sm,
   },
   divider: {
     height: 1,

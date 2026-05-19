@@ -80,6 +80,46 @@ function MoreIcon() {
   )
 }
 
+function WalletIcon() {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+      <Path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5"
+        stroke={Colors.brand.primary} strokeWidth={2}
+        strokeLinecap="round" strokeLinejoin="round"
+      />
+      <Path d="M16 12h5v4h-5a2 2 0 0 1 0-4z"
+        stroke={Colors.brand.primary} strokeWidth={2}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  )
+}
+
+function PlusIcon() {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 5v14M5 12h14"
+        stroke={Colors.brand.primary} strokeWidth={2.2} strokeLinecap="round"
+      />
+    </Svg>
+  )
+}
+
+function BellIcon() {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+      <Path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"
+        stroke={Colors.brand.primary} strokeWidth={2}
+        strokeLinecap="round" strokeLinejoin="round"
+      />
+      <Path d="M13.73 21a2 2 0 0 1-3.46 0"
+        stroke={Colors.brand.primary} strokeWidth={2}
+        strokeLinecap="round" strokeLinejoin="round"
+      />
+    </Svg>
+  )
+}
+
 export function FriendProfileScreen({ navigation, route }: Props) {
   const { id: friendId, name, avatarUrl } = route.params
   const firstName = name.split(' ')[0]
@@ -250,81 +290,100 @@ export function FriendProfileScreen({ navigation, route }: Props) {
         ) : (
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-            {/* ── Perfil ── */}
-            <View style={styles.profileSection}>
-              {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-              ) : (
-                <View style={styles.avatarFallback}>
-                  <PersonIcon size={40} color={Colors.neutral.placeholder} />
-                </View>
-              )}
-              <Text variant="h2" color={Colors.neutral.primary} weight="700">
-                {name}
-              </Text>
-              {extra?.username && (
-                <Text variant="body" color={Colors.neutral.secondary}>
-                  @{extra.username}
-                </Text>
-              )}
-            </View>
-
-            {/* ── Balanço ── */}
-            {(() => {
-              const net = theyOweMe - iOweThem
-              const absStr = `R$ ${Math.abs(net).toFixed(2).replace('.', ',')}`
-              const color = net > 0 ? Colors.status.credit : net < 0 ? Colors.status.debt : Colors.neutral.secondary
-              const label = net > 0 ? `${firstName} te deve` : net < 0 ? 'Você deve' : 'Vocês estão quites'
-
-              return (
-                <View style={styles.balanceCard}>
-                  {net !== 0 && (
-                    <Text style={[styles.balanceAmount, { color }]}>
-                      {absStr}
-                    </Text>
-                  )}
-                  <Text variant="body" color={color} weight="600">
-                    {label}
-                  </Text>
-                </View>
-              )
-            })()}
-
-            {/* ── Ações de pagamento ── */}
-            {(iOweThem > 0 || theyOweMe > 0) && (
-              <View style={styles.actionRow}>
-                {iOweThem > 0 && (
-                  <TouchableOpacity
-                    style={styles.payBtn}
-                    activeOpacity={0.85}
-                    onPress={() => navigation.navigate('PaymentFlow', {
-                      screen: 'PaymentSelector',
-                      params: { friendId, friendName: name, avatarUrl: avatarUrl ?? null, direction: 'pay' },
-                    })}
-                  >
-                    <PixIcon size={15} color={Colors.neutral.white} />
-                    <Text variant="label" color={Colors.neutral.white} weight="700">
-                      Pagar com PIX
-                    </Text>
-                  </TouchableOpacity>
+            {/* ── Perfil + Balanço ── */}
+            <View style={styles.profileBlock}>
+              <View style={styles.profileSection}>
+                {avatarUrl ? (
+                  <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+                ) : (
+                  <View style={styles.avatarFallback}>
+                    <PersonIcon size={40} color={Colors.neutral.placeholder} />
+                  </View>
                 )}
-                {theyOweMe > 0 && (
-                  <TouchableOpacity
-                    style={styles.chargeBtn}
-                    activeOpacity={0.85}
-                    onPress={() => navigation.navigate('PaymentFlow', {
-                      screen: 'PaymentSelector',
-                      params: { friendId, friendName: name, avatarUrl: avatarUrl ?? null, direction: 'charge' },
-                    })}
-                  >
-                    <PixIcon size={15} color={Colors.brand.primary} />
-                    <Text variant="label" color={Colors.brand.primary} weight="700">
-                      Cobrar
-                    </Text>
-                  </TouchableOpacity>
+                <Text variant="h2" color={Colors.neutral.primary} weight="700">
+                  {name}
+                </Text>
+                {extra?.username && (
+                  <Text variant="body" color={Colors.neutral.secondary}>
+                    @{extra.username}
+                  </Text>
                 )}
               </View>
-            )}
+
+              {(() => {
+                const net = theyOweMe - iOweThem
+                const absStr = `R$ ${Math.abs(net).toFixed(2).replace('.', ',')}`
+                const color = net > 0 ? Colors.status.credit : net < 0 ? Colors.status.debt : Colors.neutral.secondary
+                const label = net > 0 ? `${firstName} te deve` : net < 0 ? 'Você deve' : 'Vocês estão quites'
+
+                return (
+                  <View style={styles.balanceCard}>
+                    {net !== 0 && (
+                      <Text style={[styles.balanceAmount, { color }]}>
+                        {absStr}
+                      </Text>
+                    )}
+                    <Text variant="body" color={color} weight="600">
+                      {label}
+                    </Text>
+                  </View>
+                )
+              })()}
+            </View>
+
+            {/* ── Ações ── */}
+            <View style={styles.actionRow}>
+              {/* Pagar */}
+              <TouchableOpacity
+                style={styles.actionItem}
+                activeOpacity={0.75}
+                onPress={() => navigation.navigate('PaymentFlow', {
+                  screen: 'PaymentSelector',
+                  params: { friendId, friendName: name, avatarUrl: avatarUrl ?? null, direction: 'pay' },
+                })}
+              >
+                <View style={[styles.actionCircle, styles.actionCirclePay]}>
+                  <WalletIcon />
+                </View>
+                <Text variant="caption" color={Colors.neutral.primary} weight="600" style={styles.actionLabel}>
+                  Pagar
+                </Text>
+              </TouchableOpacity>
+
+              {/* Adicionar dívida */}
+              <TouchableOpacity
+                style={styles.actionItem}
+                activeOpacity={0.75}
+                onPress={() => navigation.navigate('DebtFlow', {
+                  screen: 'DebtValue',
+                  params: { type: 'friend', targetId: friendId, targetName: name, avatarUrl: avatarUrl ?? null },
+                })}
+              >
+                <View style={[styles.actionCircle, styles.actionCircleDebt]}>
+                  <PlusIcon />
+                </View>
+                <Text variant="caption" color={Colors.neutral.primary} weight="600" style={styles.actionLabel}>
+                  Dívida
+                </Text>
+              </TouchableOpacity>
+
+              {/* Cobrar */}
+              <TouchableOpacity
+                style={styles.actionItem}
+                activeOpacity={0.75}
+                onPress={() => navigation.navigate('PaymentFlow', {
+                  screen: 'PaymentSelector',
+                  params: { friendId, friendName: name, avatarUrl: avatarUrl ?? null, direction: 'charge' },
+                })}
+              >
+                <View style={[styles.actionCircle, styles.actionCircleCharge]}>
+                  <BellIcon />
+                </View>
+                <Text variant="caption" color={Colors.neutral.primary} weight="600" style={styles.actionLabel}>
+                  Cobrar
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             {/* ── PIX ── */}
             {extra?.pixKey && (
@@ -489,12 +548,14 @@ const styles = StyleSheet.create({
     gap: Spacing.lg,
   },
 
-  // Perfil
+  // Perfil + Balanço
+  profileBlock: {
+    gap: Spacing.sm,
+  },
   profileSection: {
     alignItems: 'center',
     gap: Spacing.xs,
     paddingTop: Spacing.sm,
-    paddingBottom: Spacing.xs,
   },
   avatar: {
     width: AVATAR_SIZE,
@@ -516,12 +577,8 @@ const styles = StyleSheet.create({
 
   // Balanço
   balanceCard: {
-    backgroundColor: Colors.neutral.surface,
-    borderRadius: Radius.xl,
-    padding: Spacing.lg,
     alignItems: 'center',
     gap: Spacing.xs,
-    ...Shadows.sm,
   },
   balanceAmount: {
     fontSize: 32,
@@ -531,29 +588,38 @@ const styles = StyleSheet.create({
   },
   actionRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    justifyContent: 'center',
+    gap: Spacing.xxl,
   },
-  payBtn: {
-    flex: 1,
-    flexDirection: 'row',
+  actionItem: {
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  actionCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.sm,
-    backgroundColor: Colors.brand.primary,
-    borderRadius: Radius.full,
-    paddingVertical: 12,
+    ...Shadows.sm,
   },
-  chargeBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    backgroundColor: Colors.neutral.white,
-    borderRadius: Radius.full,
+  actionCirclePay: {
+    backgroundColor: Colors.brand.xlight,
     borderWidth: 1.5,
-    borderColor: Colors.brand.primary,
-    paddingVertical: 12,
+    borderColor: Colors.brand.light,
+  },
+  actionCircleCharge: {
+    backgroundColor: Colors.brand.xlight,
+    borderWidth: 1.5,
+    borderColor: Colors.brand.light,
+  },
+  actionCircleDebt: {
+    backgroundColor: Colors.brand.xlight,
+    borderWidth: 1.5,
+    borderColor: Colors.brand.light,
+  },
+  actionLabel: {
+    textAlign: 'center',
   },
 
   // PIX

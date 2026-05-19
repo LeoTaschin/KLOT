@@ -40,7 +40,7 @@ export type AppStackParamList = {
   ChangeName: undefined
   ChangeUsername: undefined
   // Dívida — modal com stack interno
-  DebtFlow: undefined
+  DebtFlow: NavigatorScreenParams<DebtStackParamList> | undefined
   // Detalhe de dívida
   DebtDetail: {
     id: string

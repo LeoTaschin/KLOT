@@ -17,7 +17,7 @@ import type { AppStackParamList } from '../../navigation/types'
 
 // ═══════════════════════════════════════════════════════════════════
 // TIPOS
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════r
 
 interface Profile {
   name: string
@@ -199,7 +199,7 @@ export function ProfileScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Colors.neutral.surface,
+    backgroundColor: Colors.neutral.white,
   },
   scroll: {
     paddingHorizontal: Spacing.lg,

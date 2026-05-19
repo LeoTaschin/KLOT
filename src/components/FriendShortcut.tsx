@@ -188,11 +188,6 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   chevronWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.neutral.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
