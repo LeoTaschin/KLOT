@@ -57,7 +57,7 @@ function formatBRL(value: number): string {
 // ═══════════════════════════════════════════════════════════════════
 
 export function ExpensesShortcutItem({ item, onPress }: ExpensesShortcutItemProps) {
-  const Icon = CATEGORY_ICONS[item.category]
+  const Icon = CATEGORY_ICONS[item.category] ?? CATEGORY_ICONS['outro']
   const amountColor = item.isCredit ? Colors.status.credit : Colors.status.debt
 
   return (

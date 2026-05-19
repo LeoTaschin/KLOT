@@ -54,6 +54,8 @@ export type AppStackParamList = {
     direction: 'owe' | 'credit'
     date: string
   }
+  // Receber PIX — QR Code para cobrança
+  ReceivePix: { amount?: number; friendName?: string }
   // Pagamento PIX — modal com stack interno
   PaymentFlow: NavigatorScreenParams<PaymentStackParamList>
 }
@@ -69,20 +71,24 @@ export type GroupStackParamList = {
 // ─── Payment Stack (modal interno) ───────────────────────────────────────────
 
 export type PaymentStackParamList = {
-  PaymentSelector: {
+  PaymentSelectMode: {
     friendId: string
     friendName: string
     avatarUrl: string | null
-    direction: 'pay' | 'charge'
   }
-  PaymentCheckout: {
+  PaymentValueSelector: {
     friendId: string
     friendName: string
     avatarUrl: string | null
-    direction: 'pay' | 'charge'
+    pixKey: string | null
+  }
+  PaymentPix: {
+    friendId: string
+    friendName: string
+    avatarUrl: string | null
+    pixKey: string | null
     amount: number
     splitIds: string[]
-    pixKey: string | null
   }
 }
 

@@ -1,7 +1,8 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 
-import { PaymentSelectorScreen } from '../screens/app/Pagamentos/PaymentSelectorScreen'
-import { PaymentCheckoutScreen } from '../screens/app/Pagamentos/PaymentCheckoutScreen'
+import { PaymentSelectModeScreen } from '../screens/app/Pagamentos/PaymentSelectorScreen'
+import { PaymentValueSelectorScreen } from '../screens/app/Pagamentos/PaymentValueSelectorScreen'
+import { PaymentPixScreen } from '../screens/app/Pagamentos/PaymentCheckoutScreen'
 import type { PaymentStackParamList } from './types'
 
 const Stack = createNativeStackNavigator<PaymentStackParamList>()
@@ -9,10 +10,15 @@ const Stack = createNativeStackNavigator<PaymentStackParamList>()
 export function PaymentStackNavigator() {
   return (
     <Stack.Navigator id="PaymentStack" screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="PaymentSelector" component={PaymentSelectorScreen} />
+      <Stack.Screen name="PaymentSelectMode" component={PaymentSelectModeScreen} />
       <Stack.Screen
-        name="PaymentCheckout"
-        component={PaymentCheckoutScreen}
+        name="PaymentValueSelector"
+        component={PaymentValueSelectorScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="PaymentPix"
+        component={PaymentPixScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </Stack.Navigator>

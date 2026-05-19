@@ -57,6 +57,7 @@ export function HomeScreen({ navigation }: TabScreenProps<'Home'>) {
             .from('expenses')
             .select('id, title, category, amount, date, payer_id')
             .eq('payer_id', user.id)
+            .neq('category', 'pagamento')
             .order('date', { ascending: false })
             .limit(4),
 

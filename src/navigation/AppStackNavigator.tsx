@@ -16,6 +16,7 @@ import { ChangeNameScreen } from '../screens/app/Settings/Change/ChangeNameScree
 import { ChangeUsernameScreen } from '../screens/app/Settings/Change/ChangeUsernameScreen'
 import { GroupStackNavigator } from './GroupStackNavigator'
 import { DebtStackNavigator } from './DebtStackNavigator'
+import { ReceivePixScreen } from '../screens/app/ReceivePixScreen'
 import { PaymentStackNavigator } from './PaymentStackNavigator'
 
 const Stack = createNativeStackNavigator<AppStackParamList>()
@@ -91,6 +92,13 @@ export function AppStackNavigator() {
         name="DebtFlow"
         component={DebtStackNavigator}
         options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+      />
+
+      {/* Receber PIX */}
+      <Stack.Screen
+        name="ReceivePix"
+        component={ReceivePixScreen}
+        options={{ animation: 'slide_from_right' }}
       />
 
       {/* Pagamento PIX — modal com stack interno */}

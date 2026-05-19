@@ -1,10 +1,9 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
   Image,
   ScrollView,
-  Share,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -17,7 +16,7 @@ import Svg, { Path } from 'react-native-svg'
 import { DebtDetailItem, type DebtDetail } from '../../../components/DebtDetailItem'
 import { GroupItem, type GroupData } from '../../../components/GroupItem'
 import { ScreenTransition } from '../../../components/ScreenTransition'
-import { PersonIcon, PixIcon, Text } from '../../../components/ui'
+import { PersonIcon, Text } from '../../../components/ui'
 import { Colors, Radius, Shadows, Spacing } from '../../../constants/theme'
 import { supabase } from '../../../lib/supabase'
 import type { AppStackParamList } from '../../../navigation/types'
@@ -129,112 +128,130 @@ export function FriendProfileScreen({ navigation, route }: Props) {
   const [iOweThem, setIOweThem] = useState(0)
   const [debts, setDebts] = useState<DebtDetail[]>([])
   const [groups, setGroups] = useState<GroupData[]>([])
+  const [payments, setPayments] = useState<{ id: string; amount: number; date: string; title: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'dividas' | 'grupos' | 'pagamentos'>('dividas')
 
+  const load = useCallback(async (showSpinner = true) => {
+    if (showSpinner) setLoading(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const [profileRes, theyOweRes, iOweRes, myGroupsRes, friendGroupsRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('username, pix_key')
+          .eq('id', friendId)
+          .single(),
+
+        supabase
+          .from('expense_splits')
+          .select('id, amount, expenses!inner(id, title, category, date, payer_id, group_id)')
+          .eq('user_id', friendId)
+          .eq('paid', false)
+          .eq('expenses.payer_id', user.id),
+
+        supabase
+          .from('expense_splits')
+          .select('id, amount, expenses!inner(id, title, category, date, payer_id, group_id)')
+          .eq('user_id', user.id)
+          .eq('paid', false)
+          .eq('expenses.payer_id', friendId),
+
+        supabase
+          .from('group_members')
+          .select('group_id')
+          .eq('user_id', user.id),
+
+        supabase
+          .from('group_members')
+          .select('group_id, groups!inner(id, name, avatar_url, category)')
+          .eq('user_id', friendId),
+      ])
+
+      if (profileRes.data) {
+        setExtra({ username: profileRes.data.username, pixKey: profileRes.data.pix_key ?? null })
+      }
+
+      const theyOweMeTotal = (theyOweRes.data ?? []).reduce((s, r) => s + Number(r.amount), 0)
+      const iOweThemTotal = (iOweRes.data ?? []).reduce((s, r) => s + Number(r.amount), 0)
+      setTheyOweMe(theyOweMeTotal)
+      setIOweThem(iOweThemTotal)
+
+      const myGroupIds = new Set((myGroupsRes.data ?? []).map((r: any) => r.group_id))
+      const common: GroupData[] = (friendGroupsRes.data ?? [])
+        .filter((r: any) => myGroupIds.has(r.group_id))
+        .map((r: any) => ({
+          id: r.groups.id,
+          name: r.groups.name,
+          avatar_url: r.groups.avatar_url ?? null,
+          category: r.groups.category ?? 'outro',
+        }))
+      setGroups(common)
+
+      const creditItems: DebtDetail[] = (theyOweRes.data ?? [])
+        .filter((r: any) => r.expenses?.category !== 'pagamento')
+        .map((r: any) => ({
+          id: r.id,
+          title: r.expenses.title,
+          category: r.expenses.category ?? 'outro',
+          amount: Number(r.amount),
+          personName: name,
+          avatarUrl: avatarUrl ?? null,
+          groupId: r.expenses.group_id ?? null,
+          groupName: null,
+          direction: 'credit' as const,
+          date: r.expenses.date,
+        }))
+
+      const oweItems: DebtDetail[] = (iOweRes.data ?? []).map((r: any) => ({
+        id: r.id,
+        title: r.expenses.title,
+        category: r.expenses.category ?? 'outro',
+        amount: Number(r.amount),
+        personName: name,
+        avatarUrl: avatarUrl ?? null,
+        groupId: r.expenses.group_id ?? null,
+        groupName: null,
+        direction: 'owe' as const,
+        date: r.expenses.date,
+      }))
+
+      setDebts([...creditItems, ...oweItems])
+
+      const { data: paymentsData } = await supabase
+        .from('expense_splits')
+        .select('id, amount, expenses!inner(title, date, category, payer_id)')
+        .eq('user_id', friendId)
+        .eq('expenses.payer_id', user.id)
+        .eq('expenses.category', 'pagamento')
+        .order('expenses(date)', { ascending: false })
+
+      setPayments(
+        (paymentsData ?? []).map((r: any) => ({
+          id: r.id,
+          amount: Number(r.amount),
+          date: r.expenses.date,
+          title: r.expenses.title,
+        }))
+      )
+    } finally {
+      if (showSpinner) setLoading(false)
+    }
+  }, [friendId])
+
   useFocusEffect(
     useCallback(() => {
-      async function load() {
-        setLoading(true)
-        try {
-          const { data: { user } } = await supabase.auth.getUser()
-          if (!user) return
-
-          const [profileRes, theyOweRes, iOweRes, myGroupsRes, friendGroupsRes] = await Promise.all([
-            // Perfil do amigo
-            supabase
-              .from('profiles')
-              .select('username, pix_key')
-              .eq('id', friendId)
-              .single(),
-
-            // Amigo me deve: splits do amigo em despesas que eu paguei
-            supabase
-              .from('expense_splits')
-              .select('id, amount, expenses!inner(id, title, category, date, payer_id, group_id)')
-              .eq('user_id', friendId)
-              .eq('paid', false)
-              .eq('expenses.payer_id', user.id),
-
-            // Eu devo ao amigo: meus splits em despesas que ele pagou
-            supabase
-              .from('expense_splits')
-              .select('id, amount, expenses!inner(id, title, category, date, payer_id, group_id)')
-              .eq('user_id', user.id)
-              .eq('paid', false)
-              .eq('expenses.payer_id', friendId),
-
-            // Meus grupos
-            supabase
-              .from('group_members')
-              .select('group_id')
-              .eq('user_id', user.id),
-
-            // Grupos do amigo
-            supabase
-              .from('group_members')
-              .select('group_id, groups!inner(id, name, avatar_url, category)')
-              .eq('user_id', friendId),
-          ])
-
-          // Perfil
-          if (profileRes.data) {
-            setExtra({ username: profileRes.data.username, pixKey: profileRes.data.pix_key ?? null })
-          }
-
-          // Balanço
-          const theyOweMeTotal = (theyOweRes.data ?? []).reduce((s, r) => s + Number(r.amount), 0)
-          const iOweThemTotal = (iOweRes.data ?? []).reduce((s, r) => s + Number(r.amount), 0)
-          setTheyOweMe(theyOweMeTotal)
-          setIOweThem(iOweThemTotal)
-
-          // Grupos em comum
-          const myGroupIds = new Set((myGroupsRes.data ?? []).map((r: any) => r.group_id))
-          const common: GroupData[] = (friendGroupsRes.data ?? [])
-            .filter((r: any) => myGroupIds.has(r.group_id))
-            .map((r: any) => ({
-              id: r.groups.id,
-              name: r.groups.name,
-              avatar_url: r.groups.avatar_url ?? null,
-              category: r.groups.category ?? 'outro',
-            }))
-          setGroups(common)
-
-          // Dívidas pendentes entre os dois
-          const creditItems: DebtDetail[] = (theyOweRes.data ?? []).map((r: any) => ({
-            id: r.id,
-            title: r.expenses.title,
-            category: r.expenses.category ?? 'outro',
-            amount: Number(r.amount),
-            personName: name,
-            avatarUrl: avatarUrl ?? null,
-            groupId: r.expenses.group_id ?? null,
-            groupName: null,
-            direction: 'credit' as const,
-            date: r.expenses.date,
-          }))
-
-          const oweItems: DebtDetail[] = (iOweRes.data ?? []).map((r: any) => ({
-            id: r.id,
-            title: r.expenses.title,
-            category: r.expenses.category ?? 'outro',
-            amount: Number(r.amount),
-            personName: name,
-            avatarUrl: avatarUrl ?? null,
-            groupId: r.expenses.group_id ?? null,
-            groupName: null,
-            direction: 'owe' as const,
-            date: r.expenses.date,
-          }))
-
-          setDebts([...creditItems, ...oweItems])
-        } finally {
-          setLoading(false)
-        }
-      }
-      load()
-    }, [friendId])
+      load(true)
+    }, [load])
   )
+
+  // Reload silently when navigation state changes (e.g., PaymentFlow modal dismissed)
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('state', () => load(false))
+    return unsubscribe
+  }, [navigation, load])
 
   const handleRemoveFriend = () => {
     Alert.alert(
@@ -260,11 +277,6 @@ export function FriendProfileScreen({ navigation, route }: Props) {
         },
       ]
     )
-  }
-
-  const handlePixShare = async () => {
-    if (!extra?.pixKey) return
-    await Share.share({ message: extra.pixKey, title: `Chave PIX de ${firstName}` })
   }
 
   const handleDebtPress = (item: DebtDetail) => {
@@ -319,7 +331,7 @@ export function FriendProfileScreen({ navigation, route }: Props) {
                 return (
                   <View style={styles.balanceCard}>
                     {net !== 0 && (
-                      <Text style={[styles.balanceAmount, { color }]}>
+                      <Text style={StyleSheet.flatten([styles.balanceAmount, { color }])}>
                         {absStr}
                       </Text>
                     )}
@@ -338,8 +350,8 @@ export function FriendProfileScreen({ navigation, route }: Props) {
                 style={styles.actionItem}
                 activeOpacity={0.75}
                 onPress={() => navigation.navigate('PaymentFlow', {
-                  screen: 'PaymentSelector',
-                  params: { friendId, friendName: name, avatarUrl: avatarUrl ?? null, direction: 'pay' },
+                  screen: 'PaymentSelectMode',
+                  params: { friendId, friendName: name, avatarUrl: avatarUrl ?? null },
                 })}
               >
                 <View style={[styles.actionCircle, styles.actionCirclePay]}>
@@ -371,9 +383,9 @@ export function FriendProfileScreen({ navigation, route }: Props) {
               <TouchableOpacity
                 style={styles.actionItem}
                 activeOpacity={0.75}
-                onPress={() => navigation.navigate('PaymentFlow', {
-                  screen: 'PaymentSelector',
-                  params: { friendId, friendName: name, avatarUrl: avatarUrl ?? null, direction: 'charge' },
+                onPress={() => navigation.navigate('ReceivePix', {
+                  amount: theyOweMe > 0 ? theyOweMe : undefined,
+                  friendName: name,
                 })}
               >
                 <View style={[styles.actionCircle, styles.actionCircleCharge]}>
@@ -385,23 +397,6 @@ export function FriendProfileScreen({ navigation, route }: Props) {
               </TouchableOpacity>
             </View>
 
-            {/* ── PIX ── */}
-            {extra?.pixKey && (
-              <TouchableOpacity style={styles.pixBtn} onPress={handlePixShare} activeOpacity={0.8}>
-                <PixIcon size={18} color={Colors.brand.primary} />
-                <View style={styles.pixInfo}>
-                  <Text variant="label" color={Colors.neutral.primary} weight="600">
-                    Chave PIX
-                  </Text>
-                  <Text variant="caption" color={Colors.neutral.secondary} numberOfLines={1}>
-                    {extra.pixKey}
-                  </Text>
-                </View>
-                <Text variant="caption" color={Colors.brand.primary} weight="600">
-                  Compartilhar
-                </Text>
-              </TouchableOpacity>
-            )}
 
             {/* ── Selector Dívidas / Grupos ── */}
             <View style={styles.chips}>
@@ -500,6 +495,34 @@ export function FriendProfileScreen({ navigation, route }: Props) {
                   </Text>
                 </View>
               )
+            ) : payments.length > 0 ? (
+              <View style={styles.tabContent}>
+                <View style={styles.sectionCard}>
+                  {payments.map((p, i) => {
+                    const dateStr = new Date(p.date).toLocaleDateString('pt-BR', {
+                      day: '2-digit', month: 'short', year: 'numeric',
+                    })
+                    return (
+                      <React.Fragment key={p.id}>
+                        {i > 0 && <View style={styles.divider} />}
+                        <View style={styles.paymentRow}>
+                          <View style={styles.paymentInfo}>
+                            <Text variant="label" color={Colors.neutral.primary} weight="600">
+                              {p.title}
+                            </Text>
+                            <Text variant="caption" color={Colors.neutral.secondary}>
+                              {dateStr}
+                            </Text>
+                          </View>
+                          <Text variant="label" color={Colors.status.credit} weight="700">
+                            {p.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          </Text>
+                        </View>
+                      </React.Fragment>
+                    )
+                  })}
+                </View>
+              </View>
             ) : (
               <View style={styles.empty}>
                 <Text variant="body" color={Colors.neutral.placeholder}>
@@ -622,23 +645,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // PIX
-  pixBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    backgroundColor: Colors.brand.xlight,
-    borderRadius: Radius.xl,
-    borderWidth: 1,
-    borderColor: Colors.brand.light,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-  },
-  pixInfo: {
-    flex: 1,
-    gap: 2,
-  },
-
   // Chips selector
   chips: {
     flexDirection: 'row',
@@ -683,6 +689,20 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: Colors.neutral.border,
     marginLeft: 72, // Spacing.md(16) + avatar(40) + gap(16)
+  },
+
+  // Pagamentos
+  paymentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.md,
+  },
+  paymentInfo: {
+    flex: 1,
+    gap: 2,
   },
 
   // Grupos

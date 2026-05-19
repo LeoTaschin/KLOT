@@ -95,7 +95,8 @@ export function ContasScreen({ navigation }: TabScreenProps<'Contas'>) {
               .select('id, amount, user_id, expenses!inner(id, title, category, date, group_id)')
               .eq('paid', false)
               .eq('expenses.payer_id', user.id)
-              .neq('user_id', user.id),
+              .neq('user_id', user.id)
+              .neq('expenses.category', 'pagamento'),
           ])
 
           const oweRaw: any[] = (oweRes.data ?? []).filter((r: any) => r.expenses?.payer_id !== user.id)

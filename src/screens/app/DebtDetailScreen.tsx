@@ -7,7 +7,7 @@ import Svg, { Path } from 'react-native-svg'
 import { ScreenTransition } from '../../components/ScreenTransition'
 import {
   CasaIcon, ComidaIcon, ContasIcon, FestaIcon,
-  PersonIcon, Text, TrabalhoIcon, TransporteIcon, ViagemIcon,
+  PagamentoIcon, PersonIcon, Text, TrabalhoIcon, TransporteIcon, ViagemIcon,
 } from '../../components/ui'
 import { Colors, Radius, Shadows, Spacing } from '../../constants/theme'
 import type { AppStackParamList } from '../../navigation/types'
@@ -21,12 +21,13 @@ const CATEGORY_ICON: Record<string, React.FC<{ size?: number; color?: string }>>
   viagem:     ViagemIcon,
   trabalho:   TrabalhoIcon,
   festa:      FestaIcon,
+  pagamento:  PagamentoIcon,
   outro:      ContasIcon,
 }
 
 const CATEGORY_LABEL: Record<string, string> = {
   comida: 'Comida', transporte: 'Transporte', casa: 'Casa',
-  viagem: 'Viagem', trabalho: 'Trabalho', festa: 'Festa', outro: 'Outro',
+  viagem: 'Viagem', trabalho: 'Trabalho', festa: 'Festa', pagamento: 'Pagamento', outro: 'Outro',
 }
 
 function formatDate(dateStr: string): string {

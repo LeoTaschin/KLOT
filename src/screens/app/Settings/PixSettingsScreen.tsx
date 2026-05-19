@@ -12,12 +12,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import Svg, { Path, Rect } from 'react-native-svg'
+import QRCode from 'react-native-qrcode-svg'
 
 import { ScreenTransition } from '../../../components/ScreenTransition'
 import { Input } from '../../../components/ui/Input'
 import { Text } from '../../../components/ui'
 import { Colors, Radius, Shadows, Spacing } from '../../../constants/theme'
 import { supabase } from '../../../lib/supabase'
+import { generatePixPayload } from '../../../utils/pixPayload'
 import type { AppStackParamList } from '../../../navigation/types'
 
 type Props = NativeStackScreenProps<AppStackParamList, 'PixSettings'>
@@ -67,6 +69,7 @@ function QRIcon() {
 
 export function PixSettingsScreen({ navigation }: Props) {
   const [currentKey, setCurrentKey] = useState<string | null>(null)
+  const [userName, setUserName] = useState('')
   const [newKey, setNewKey] = useState('')
   const [selectedType, setSelectedType] = useState<PixType>('CPF / CNPJ')
   const [loading, setLoading] = useState(true)
@@ -82,11 +85,14 @@ export function PixSettingsScreen({ navigation }: Props) {
 
       const { data } = await supabase
         .from('profiles')
-        .select('pix_key')
+        .select('pix_key, name')
         .eq('id', user.id)
         .single()
 
-      if (data) setCurrentKey(data.pix_key ?? null)
+      if (data) {
+        setCurrentKey(data.pix_key ?? null)
+        setUserName(data.name ?? '')
+      }
       setLoading(false)
     }
     load()
@@ -222,17 +228,27 @@ export function PixSettingsScreen({ navigation }: Props) {
             </TouchableOpacity>
 
             {/* ── BRCode ── */}
-            <View style={styles.brCodeSection}>
-              <View style={styles.brCodeHeader}>
-                <QRIcon />
-                <Text variant="label" color={Colors.neutral.secondary} weight="600">
-                  BRCode
+            {currentKey ? (
+              <View style={styles.brCodeSection}>
+                <View style={styles.brCodeHeader}>
+                  <QRIcon />
+                  <Text variant="label" color={Colors.neutral.secondary} weight="600">
+                    Meu QR Code PIX
+                  </Text>
+                </View>
+                <View style={styles.qrWrapper}>
+                  <QRCode
+                    value={generatePixPayload({ pixKey: currentKey, merchantName: userName })}
+                    size={180}
+                    color={Colors.neutral.primary}
+                    backgroundColor={Colors.neutral.white}
+                  />
+                </View>
+                <Text variant="caption" color={Colors.neutral.placeholder} style={styles.qrHint}>
+                  Mostre este código para receber PIX sem valor fixo
                 </Text>
               </View>
-              <Text variant="caption" color={Colors.neutral.placeholder}>
-                Em breve você poderá gerar seu QR Code para receber pagamentos diretamente pelo app.
-              </Text>
-            </View>
+            ) : null}
           </ScrollView>
         </KeyboardAvoidingView>
       </ScreenTransition>
@@ -368,5 +384,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
+  },
+  qrWrapper: {
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+  },
+  qrHint: {
+    textAlign: 'center',
   },
 })
