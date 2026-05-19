@@ -11,7 +11,7 @@ import {
   TransporteIcon,
   ViagemIcon,
 } from './ui'
-import { Colors, Radius, Shadows, Spacing } from '../constants/theme'
+import { Colors, Spacing } from '../constants/theme'
 
 // ═══════════════════════════════════════════════════════════════════
 // TIPOS
@@ -22,8 +22,10 @@ export interface GroupExpense {
   title: string
   category: string
   amount: number
+  date: string
   payer_name: string
   split_count: number
+  direction: 'credit' | 'debt' | 'neutral'
 }
 
 interface Props {
@@ -40,6 +42,12 @@ const CATEGORY_ICON: Record<string, React.FC<{ size?: number; color?: string }>>
   outro:      ContasIcon,
 }
 
+const AMOUNT_COLOR: Record<GroupExpense['direction'], string> = {
+  credit:  Colors.status.credit,
+  debt:    Colors.status.debt,
+  neutral: Colors.neutral.secondary,
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // COMPONENTE
 // ═══════════════════════════════════════════════════════════════════
@@ -47,27 +55,18 @@ const CATEGORY_ICON: Record<string, React.FC<{ size?: number; color?: string }>>
 export function GroupDebtItem({ expense }: Props) {
   const Icon = CATEGORY_ICON[expense.category] ?? ContasIcon
   const firstName = expense.payer_name.split(' ')[0]
-  const total = `R$ ${expense.amount.toFixed(2).replace('.', ',')}`
+  const amountStr = `R$ ${expense.amount.toFixed(2).replace('.', ',')}`
+  const dateStr = new Date(expense.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
   const perPerson = expense.split_count > 0
-    ? `R$ ${(expense.amount / expense.split_count).toFixed(2).replace('.', ',')}`
+    ? `R$ ${(expense.amount / expense.split_count).toFixed(2).replace('.', ',')} cada`
     : null
 
   return (
     <View style={styles.row}>
-
-      {/* ── Ícone com tag dentro dos limites ── */}
-      <View style={styles.iconWrap}>
-        <View style={styles.iconBg}>
-          <Icon size={20} color={Colors.brand.primary} />
-        </View>
-        <View style={styles.payerTag}>
-          <Text style={styles.payerTagText} numberOfLines={1}>
-            {firstName}
-          </Text>
-        </View>
+      <View style={styles.iconCircle}>
+        <Icon size={18} color={Colors.brand.primary} />
       </View>
 
-      {/* ── Info: título + duas linhas de detalhe ── */}
       <View style={styles.info}>
         <Text variant="label" color={Colors.neutral.primary} weight="600" numberOfLines={1}>
           {expense.title}
@@ -75,20 +74,21 @@ export function GroupDebtItem({ expense }: Props) {
         <Text variant="caption" color={Colors.neutral.secondary} numberOfLines={1}>
           Pago por {firstName}
         </Text>
-        {expense.split_count > 0 && perPerson && (
+        {perPerson && (
           <Text variant="caption" color={Colors.neutral.placeholder} numberOfLines={1}>
-            {expense.split_count} pessoa{expense.split_count > 1 ? 's' : ''} · {perPerson} cada
+            {expense.split_count} pessoa{expense.split_count > 1 ? 's' : ''} · {perPerson}
           </Text>
         )}
       </View>
 
-      {/* ── Valor total destacado ── */}
-      <View style={styles.valueWrap}>
-        <Text variant="h3" color={Colors.neutral.primary} weight="700">
-          {total}
+      <View style={styles.right}>
+        <Text variant="label" color={AMOUNT_COLOR[expense.direction]} weight="700">
+          {amountStr}
+        </Text>
+        <Text variant="caption" color={Colors.neutral.secondary}>
+          {dateStr}
         </Text>
       </View>
-
     </View>
   )
 }
@@ -97,66 +97,32 @@ export function GroupDebtItem({ expense }: Props) {
 // ESTILOS
 // ═══════════════════════════════════════════════════════════════════
 
-const ICON_SIZE = 50
+const ICON_SIZE = 40
 
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    backgroundColor: Colors.neutral.white,
-    borderRadius: Radius.lg,
-    borderWidth: 0.5,
-    borderColor: Colors.neutral.border,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.md,
-    ...Shadows.sm,
   },
-
-  // Ícone
-  iconWrap: {
+  iconCircle: {
     width: ICON_SIZE,
     height: ICON_SIZE,
-    flexShrink: 0,
-  },
-  iconBg: {
-    width: ICON_SIZE,
-    height: ICON_SIZE,
-    borderRadius: Radius.lg,
+    borderRadius: ICON_SIZE / 2,
     backgroundColor: Colors.brand.xlight,
-    borderWidth: 1,
-    borderColor: Colors.brand.light,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
-  payerTag: {
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
-    backgroundColor: Colors.brand.primary,
-    borderRadius: Radius.full,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderWidth: 1.5,
-    borderColor: Colors.neutral.white,
-    maxWidth: 40,
-  },
-  payerTagText: {
-    color: Colors.neutral.white,
-    fontSize: 8,
-    fontWeight: '700',
-    letterSpacing: 0.1,
-  },
-
-  // Info
   info: {
     flex: 1,
     gap: 2,
   },
-
-  // Valor
-  valueWrap: {
+  right: {
     alignItems: 'flex-end',
+    gap: 2,
     flexShrink: 0,
   },
 })

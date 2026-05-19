@@ -1,23 +1,20 @@
 import React, { useCallback, useState } from 'react'
-import {
-  Image,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from 'react-native'
+import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import Svg, { Path } from 'react-native-svg'
 
+import { GroupAddMember } from '../../../components/Alerts/GroupAddMember'
+import { GroupRemoveMember } from '../../../components/Alerts/GroupRemoveMember'
 import { GroupDebtItem, type GroupExpense } from '../../../components/GroupDebtItem'
+import { GroupMemberItem, type GroupMemberData } from '../../../components/GroupMemberItem'
 import { ScreenTransition } from '../../../components/ScreenTransition'
 import {
   CasaIcon,
   ContasIcon,
   FestaIcon,
   GruposIcon,
-  PersonIcon,
   Text,
   TrabalhoIcon,
   ViagemIcon,
@@ -32,16 +29,7 @@ import type { AppStackParamList } from '../../../navigation/types'
 
 type Props = NativeStackScreenProps<AppStackParamList, 'GroupDetails'>
 
-interface Member {
-  id: string
-  name: string
-  username: string
-  avatar_url: string | null
-  isAdmin: boolean
-}
-
-
-const AVATAR_SIZE = 44
+type Tab = 'membros' | 'despesas'
 
 const CATEGORY_CONFIG: Record<string, { label: string; Icon: React.FC<{ size?: number; color?: string }> }> = {
   casa:     { label: 'Casa',     Icon: CasaIcon     },
@@ -53,6 +41,51 @@ const CATEGORY_CONFIG: Record<string, { label: string; Icon: React.FC<{ size?: n
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════
+
+const MONTHS_PT = [
+  'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro',
+]
+
+function getPeriodKey(dateStr: string): string {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const startOfWeek = new Date(now)
+  const day = now.getDay()
+  startOfWeek.setDate(now.getDate() - (day === 0 ? 6 : day - 1))
+  startOfWeek.setHours(0, 0, 0, 0)
+  if (date >= startOfWeek) return 'Esta semana'
+  return `${MONTHS_PT[date.getMonth()]} ${date.getFullYear()}`
+}
+
+function groupExpensesByPeriod(items: GroupExpense[]) {
+  const map = new Map<string, GroupExpense[]>()
+  for (const item of items) {
+    const key = getPeriodKey(item.date)
+    if (!map.has(key)) map.set(key, [])
+    map.get(key)!.push(item)
+  }
+  return Array.from(map.entries()).map(([title, data]) => ({ title, data }))
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ÍCONES
+// ═══════════════════════════════════════════════════════════════════
+
+function BackIcon() {
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <Path d="M19 12H5M5 12L12 19M5 12L12 5"
+        stroke={Colors.neutral.primary} strokeWidth={2}
+        strokeLinecap="round" strokeLinejoin="round"
+      />
+    </Svg>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // COMPONENTE
 // ═══════════════════════════════════════════════════════════════════
 
@@ -61,10 +94,15 @@ export function GroupDetailsScreen({ navigation, route }: Props) {
   const config = CATEGORY_CONFIG[category] ?? CATEGORY_CONFIG.outro
   const { Icon, label } = config
 
-  const [members, setMembers] = useState<Member[]>([])
+  const [members, setMembers] = useState<GroupMemberData[]>([])
   const [expenses, setExpenses] = useState<GroupExpense[]>([])
-  const [myBalance, setMyBalance] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<Tab>('membros')
+  const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState('')
+  const [memberToRemove, setMemberToRemove] = useState<GroupMemberData | null>(null)
+  const [addMemberVisible, setAddMemberVisible] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useFocusEffect(
     useCallback(() => {
@@ -73,110 +111,105 @@ export function GroupDetailsScreen({ navigation, route }: Props) {
         try {
           const { data: { user } } = await supabase.auth.getUser()
           if (!user) return
+          setCurrentUserId(user.id)
 
-          // Busca criador + membros
-          const [groupRes, membersRes] = await Promise.all([
+          const [groupRes, membersRes, expensesRes] = await Promise.all([
             supabase.from('groups').select('created_by').eq('id', id).single(),
+
             supabase
               .from('group_members')
               .select('user_id, profiles(id, name, username, avatar_url)')
               .eq('group_id', id),
+
+            supabase
+              .from('expenses')
+              .select('id, title, category, amount, date, payer_id, profiles!payer_id(name), expense_splits!expense_id(user_id)')
+              .eq('group_id', id)
+              .order('date', { ascending: false }),
           ])
 
           const createdBy: string = groupRes.data?.created_by ?? ''
 
-          const parsedMembers: Member[] = (membersRes.data ?? [])
-            .map((r: any) => ({
-              id: r.profiles?.id,
-              name: r.profiles?.name,
-              username: r.profiles?.username,
-              avatar_url: r.profiles?.avatar_url,
-              isAdmin: r.user_id === createdBy,
-            }))
-            .filter((m: Member) => m.id)
-            .sort((a: Member, b: Member) => Number(b.isAdmin) - Number(a.isAdmin))
+          setIsCurrentUserAdmin(user.id === createdBy)
 
-          setMembers(parsedMembers)
-
-          // Busca despesas do grupo com contagem de splits
-          const { data: expensesData } = await supabase
-            .from('expenses')
-            .select('id, title, category, amount, created_at, profiles!payer_id(name), expense_splits!expense_id(id)')
-            .eq('group_id', id)
-            .order('created_at', { ascending: false })
-            .limit(5)
-
-          setExpenses(
-            (expensesData ?? []).map((e: any) => ({
-              id: e.id,
-              title: e.title,
-              category: e.category ?? 'outro',
-              amount: Number(e.amount),
-              payer_name: e.profiles?.name ?? '',
-              split_count: Array.isArray(e.expense_splits) ? e.expense_splits.length : 0,
-            }))
+          setMembers(
+            (membersRes.data ?? [])
+              .map((r: any): GroupMemberData => ({
+                id: r.profiles?.id,
+                name: r.profiles?.name,
+                username: r.profiles?.username,
+                avatar_url: r.profiles?.avatar_url,
+                isAdmin: r.user_id === createdBy,
+              }))
+              .filter((m: GroupMemberData) => m.id)
+              .sort((a: GroupMemberData, b: GroupMemberData) => Number(b.isAdmin) - Number(a.isAdmin))
           )
 
-          // Calcula saldo do usuário no grupo
-          const memberIds = parsedMembers.map((m) => m.id).filter((mid) => mid !== user.id)
-
-          if (memberIds.length > 0) {
-            const [theyOweRes, iOweRes] = await Promise.all([
-              supabase
-                .from('expense_splits')
-                .select('amount, expenses!inner(payer_id, group_id)')
-                .in('user_id', memberIds)
-                .eq('paid', false)
-                .eq('expenses.payer_id', user.id)
-                .eq('expenses.group_id', id),
-              supabase
-                .from('expense_splits')
-                .select('amount, expenses!inner(payer_id, group_id)')
-                .eq('user_id', user.id)
-                .eq('paid', false)
-                .eq('expenses.group_id', id)
-                .neq('expenses.payer_id', user.id),
-            ])
-
-            const credit = (theyOweRes.data ?? []).reduce((s: number, r: any) => s + Number(r.amount), 0)
-            const debt = (iOweRes.data ?? []).reduce((s: number, r: any) => s + Number(r.amount), 0)
-            setMyBalance(credit - debt)
-          }
+          setExpenses(
+            (expensesRes.data ?? []).map((e: any): GroupExpense => {
+              const splits: string[] = Array.isArray(e.expense_splits)
+                ? e.expense_splits.map((s: any) => s.user_id)
+                : []
+              const direction =
+                e.payer_id === user.id ? 'credit'
+                : splits.includes(user.id) ? 'debt'
+                : 'neutral'
+              return {
+                id: e.id,
+                title: e.title,
+                category: e.category ?? 'outro',
+                amount: Number(e.amount),
+                date: e.date,
+                payer_name: e.profiles?.name ?? '',
+                split_count: splits.length,
+                direction,
+              }
+            })
+          )
         } finally {
           setLoading(false)
         }
       }
       fetchData()
-    }, [id])
+    }, [id, refreshKey])
   )
 
-  const balanceIsPositive = myBalance > 0
-  const balanceIsZero = myBalance === 0
-  const balanceColor = balanceIsZero
-    ? Colors.status.settled
-    : balanceIsPositive
-    ? Colors.status.credit
-    : Colors.status.debt
-  const balanceLabel = balanceIsZero
-    ? 'Tudo quitado'
-    : balanceIsPositive
-    ? 'Te devem'
-    : 'Você deve'
+  function handleAddMember() {
+    setAddMemberVisible(true)
+  }
+
+  function handleRemoveMember(member: GroupMemberData) {
+    setMemberToRemove(member)
+  }
+
+  async function handleConfirmRemove(member: GroupMemberData) {
+    const { error } = await supabase
+      .from('group_members')
+      .delete()
+      .eq('group_id', id)
+      .eq('user_id', member.id)
+
+    if (error) {
+      console.error('Erro ao remover membro:', error.message)
+      return
+    }
+
+    setMembers((prev) => prev.filter((m) => m.id !== member.id))
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScreenTransition>
         <View style={styles.flex}>
-          <ScrollView
-            contentContainerStyle={styles.scroll}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* ── Header ── */}
-            <View style={styles.header}>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={8}>
-                <Text variant="body" color={Colors.brand.primary}>← Voltar</Text>
-              </TouchableOpacity>
-            </View>
+
+          {/* ── Header ── */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={12}>
+              <BackIcon />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
             {/* ── Hero ── */}
             <View style={styles.hero}>
@@ -197,97 +230,117 @@ export function GroupDetailsScreen({ navigation, route }: Props) {
               </View>
             </View>
 
-            {/* ── Resumo financeiro ── */}
-            <View style={styles.balanceCard}>
-              <View style={styles.balanceLeft}>
-                <Text variant="caption" color={Colors.neutral.secondary} weight="500">
-                  {balanceLabel}
+            {/* ── Seletor de tab ── */}
+            <View style={styles.chips}>
+              <TouchableOpacity
+                style={[styles.chip, activeTab === 'membros' && styles.chipActive]}
+                onPress={() => setActiveTab('membros')}
+                activeOpacity={0.7}
+              >
+                <Text
+                  variant="caption"
+                  color={activeTab === 'membros' ? Colors.brand.primary : Colors.neutral.secondary}
+                  weight={activeTab === 'membros' ? '600' : '400'}
+                >
+                  Membros{members.length > 0 ? ` (${members.length})` : ''}
                 </Text>
-                <Text variant="h2" color={balanceColor} weight="700">
-                  R$ {Math.abs(myBalance).toFixed(2).replace('.', ',')}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.chip, activeTab === 'despesas' && styles.chipActive]}
+                onPress={() => setActiveTab('despesas')}
+                activeOpacity={0.7}
+              >
+                <Text
+                  variant="caption"
+                  color={activeTab === 'despesas' ? Colors.brand.primary : Colors.neutral.secondary}
+                  weight={activeTab === 'despesas' ? '600' : '400'}
+                >
+                  Despesas{expenses.length > 0 ? ` (${expenses.length})` : ''}
                 </Text>
-              </View>
-              <View style={[styles.balanceDot, { backgroundColor: balanceColor }]} />
+              </TouchableOpacity>
             </View>
 
-            {/* ── Membros ── */}
-            <View style={styles.section}>
-              <Text variant="label" color={Colors.neutral.secondary} weight="600" style={styles.sectionLabel}>
-                Membros ({members.length})
-              </Text>
-              {loading ? (
+            {/* ── Conteúdo ── */}
+            {loading ? (
+              <View style={styles.empty}>
                 <Text variant="body" color={Colors.neutral.placeholder}>Carregando...</Text>
+              </View>
+            ) : activeTab === 'membros' ? (
+              members.length === 0 ? (
+                <View style={styles.empty}>
+                  <Text variant="body" color={Colors.neutral.placeholder}>Nenhum membro</Text>
+                </View>
               ) : (
                 <View style={styles.memberList}>
-                  {members.map((m) => (
-                    <View key={m.id} style={[styles.memberRow, m.isAdmin && styles.memberRowAdmin]}>
-                      {m.avatar_url ? (
-                        <Image source={{ uri: m.avatar_url }} style={styles.avatar} />
-                      ) : (
-                        <View style={[styles.avatarFallback, m.isAdmin && styles.avatarFallbackAdmin]}>
-                          <PersonIcon size={18} color={m.isAdmin ? Colors.brand.primary : Colors.neutral.placeholder} />
-                        </View>
-                      )}
-                      <View style={styles.memberInfo}>
-                        <Text variant="label" color={Colors.neutral.primary} weight="600">
-                          {m.name}
-                        </Text>
-                        <Text variant="caption" color={Colors.neutral.secondary}>
-                          @{m.username}
-                        </Text>
+                  {isCurrentUserAdmin && (
+                    <TouchableOpacity style={styles.addMemberBtn} onPress={handleAddMember} activeOpacity={0.7}>
+                      <View style={styles.addMemberIcon}>
+                        <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
+                          <Path d="M12 5v14M5 12h14" stroke={Colors.brand.primary} strokeWidth={2.5} strokeLinecap="round" />
+                        </Svg>
                       </View>
-                      {m.isAdmin && (
-                        <View style={styles.adminBadge}>
-                          <Text variant="caption" color={Colors.brand.primary} weight="700">
-                            ADM
-                          </Text>
-                        </View>
-                      )}
-                    </View>
+                      <Text variant="caption" color={Colors.brand.primary} weight="600">
+                        Adicionar membro
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {members.map((m) => (
+                    <GroupMemberItem
+                      key={m.id}
+                      member={m}
+                      onRemove={isCurrentUserAdmin && !m.isAdmin ? handleRemoveMember : undefined}
+                    />
                   ))}
                 </View>
-              )}
-            </View>
-
-            {/* ── Despesas recentes ── */}
-            <View style={styles.section}>
-              <Text variant="label" color={Colors.neutral.secondary} weight="600" style={styles.sectionLabel}>
-                Despesas recentes
-              </Text>
-              {loading ? (
-                <Text variant="body" color={Colors.neutral.placeholder}>Carregando...</Text>
-              ) : expenses.length === 0 ? (
-                <View style={styles.emptyExpenses}>
-                  <Text variant="body" color={Colors.neutral.placeholder}>
-                    Nenhuma despesa ainda
-                  </Text>
+              )
+            ) : (
+              expenses.length === 0 ? (
+                <View style={styles.empty}>
+                  <Text variant="body" color={Colors.neutral.placeholder}>Nenhuma despesa ainda</Text>
                 </View>
               ) : (
                 <View style={styles.expenseList}>
-                  {expenses.map((e) => (
-                    <GroupDebtItem key={e.id} expense={e} />
+                  {groupExpensesByPeriod(expenses).map(({ title, data }) => (
+                    <View key={title}>
+                      <View style={styles.periodHeader}>
+                        <Text variant="caption" color={Colors.neutral.secondary} weight="600">
+                          {title.toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={styles.sectionCard}>
+                        {data.map((e, i) => (
+                          <React.Fragment key={e.id}>
+                            {i > 0 && <View style={styles.divider} />}
+                            <GroupDebtItem expense={e} />
+                          </React.Fragment>
+                        ))}
+                      </View>
+                    </View>
                   ))}
                 </View>
-              )}
-            </View>
-          </ScrollView>
+              )
+            )}
 
-          {/* ── Rodapé fixo ── */}
-          <View style={styles.footer}>
-            <TouchableOpacity
-              style={styles.newExpenseBtn}
-              activeOpacity={0.8}
-              onPress={() =>
-                navigation.navigate('DebtFlow')
-              }
-            >
-              <Text variant="label" color={Colors.neutral.white} weight="700">
-                + Nova despesa
-              </Text>
-            </TouchableOpacity>
-          </View>
+          </ScrollView>
         </View>
       </ScreenTransition>
+
+      <GroupRemoveMember
+        member={memberToRemove}
+        onClose={() => setMemberToRemove(null)}
+        onConfirm={handleConfirmRemove}
+      />
+
+      <GroupAddMember
+        visible={addMemberVisible}
+        groupId={id}
+        groupName={name}
+        existingMemberIds={members.map((m) => m.id)}
+        currentUserId={currentUserId}
+        onClose={() => setAddMemberVisible(false)}
+        onMembersAdded={() => setRefreshKey((k) => k + 1)}
+      />
     </SafeAreaView>
   )
 }
@@ -304,17 +357,20 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  scroll: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.xl,
-    gap: Spacing.lg,
-  },
   header: {
-    marginBottom: Spacing.xs,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
   },
   backBtn: {
-    alignSelf: 'flex-start',
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scroll: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xl,
+    gap: Spacing.lg,
   },
 
   // Hero
@@ -354,117 +410,74 @@ const styles = StyleSheet.create({
     borderColor: Colors.brand.light,
   },
 
-  // Balanço
-  balanceCard: {
+  // Chips
+  chips: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.neutral.surface,
-    borderRadius: Radius.xl,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
-    borderWidth: 1,
-    borderColor: Colors.neutral.border,
-  },
-  balanceLeft: {
-    gap: 4,
-  },
-  balanceDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    opacity: 0.8,
-  },
-
-  // Seções
-  section: {
     gap: Spacing.sm,
   },
-  sectionLabel: {
-    marginLeft: 2,
+  chip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: Colors.neutral.border,
+    backgroundColor: Colors.neutral.white,
+  },
+  chipActive: {
+    borderColor: Colors.brand.primary,
+    backgroundColor: Colors.brand.xlight,
+  },
+
+  // Estado vazio
+  empty: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
   },
 
   // Membros
   memberList: {
     gap: Spacing.sm,
   },
-  memberRow: {
+  addMemberBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    backgroundColor: Colors.neutral.white,
-    borderRadius: Radius.lg,
-    borderWidth: 0.5,
-    borderColor: Colors.neutral.border,
-    paddingVertical: Spacing.md,
+    alignSelf: 'flex-end',
+    gap: Spacing.sm,
+    marginBottom: Spacing.xs,
+    paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.md,
-    ...Shadows.sm,
-  },
-  memberRowAdmin: {
-    backgroundColor: Colors.brand.xlight,
+    borderRadius: Radius.full,
+    borderWidth: 1,
     borderColor: Colors.brand.light,
-    borderWidth: 1,
+    backgroundColor: Colors.brand.xlight,
   },
-  avatar: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-  },
-  avatarFallback: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: Colors.neutral.surface,
-    borderWidth: 1,
-    borderColor: Colors.neutral.border,
+  addMemberIcon: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  avatarFallbackAdmin: {
-    backgroundColor: Colors.neutral.white,
-    borderColor: Colors.brand.light,
-  },
-  memberInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  adminBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.neutral.white,
-    borderWidth: 1,
-    borderColor: Colors.brand.light,
   },
 
   // Despesas
   expenseList: {
-    gap: Spacing.sm,
+    gap: Spacing.md,
   },
-  emptyExpenses: {
-    backgroundColor: Colors.neutral.surface,
-    borderRadius: Radius.lg,
-    paddingVertical: Spacing.lg,
-    alignItems: 'center',
+  periodHeader: {
+    paddingBottom: Spacing.xs,
+    paddingLeft: 2,
   },
-
-  // Rodapé
-  footer: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+  sectionCard: {
     backgroundColor: Colors.neutral.white,
-    borderTopWidth: 1,
-    borderTopColor: Colors.neutral.border,
+    borderRadius: Radius.xl,
+    borderWidth: 0.5,
+    borderColor: Colors.neutral.border,
+    overflow: 'hidden',
+    ...Shadows.sm,
   },
-  newExpenseBtn: {
-    height: 54,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.brand.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.md,
-    shadowColor: Colors.brand.primary,
-    shadowOpacity: 0.3,
+  divider: {
+    height: 1,
+    backgroundColor: Colors.neutral.border,
+    marginLeft: 72,
   },
 })
-
