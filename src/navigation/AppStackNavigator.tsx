@@ -9,6 +9,11 @@ import { AddFriendScreen } from '../screens/app/amigos/AddFriendScreen'
 import { FriendProfileScreen } from '../screens/app/amigos/FriendProfileScreen'
 import { GroupDetailsScreen } from '../screens/app/grupos/GroupDetailsScreen'
 import { DebtDetailScreen } from '../screens/app/DebtDetailScreen'
+import { EditProfileScreen } from '../screens/app/Settings/EditProfileScreen'
+import { PixSettingsScreen } from '../screens/app/Settings/PixSettingsScreen'
+import { NotificationsScreen } from '../screens/app/Settings/NotificationsScreen'
+import { ChangeNameScreen } from '../screens/app/Settings/Change/ChangeNameScreen'
+import { ChangeUsernameScreen } from '../screens/app/Settings/Change/ChangeUsernameScreen'
 import { GroupStackNavigator } from './GroupStackNavigator'
 import { DebtStackNavigator } from './DebtStackNavigator'
 import { PaymentStackNavigator } from './PaymentStackNavigator'
@@ -45,6 +50,33 @@ export function AppStackNavigator() {
         name="GroupFlow"
         component={GroupStackNavigator}
         options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+      />
+
+      {/* Configurações de perfil */}
+      <Stack.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="PixSettings"
+        component={PixSettingsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="ChangeName"
+        component={ChangeNameScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="ChangeUsername"
+        component={ChangeUsernameScreen}
+        options={{ animation: 'slide_from_right' }}
       />
 
       {/* Detalhe de dívida */}

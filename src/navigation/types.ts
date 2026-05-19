@@ -33,6 +33,12 @@ export type AppStackParamList = {
   // Grupo
   GroupFlow: undefined
   GroupDetails: { id: string; name: string; category: string; avatarUrl: string | null }
+  // Configurações de perfil
+  EditProfile: undefined
+  PixSettings: undefined
+  Notifications: undefined
+  ChangeName: undefined
+  ChangeUsername: undefined
   // Dívida — modal com stack interno
   DebtFlow: undefined
   // Detalhe de dívida

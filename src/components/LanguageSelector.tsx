@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Animated,
-  Dimensions,
   Easing,
   Modal,
   Pressable,
@@ -28,15 +27,21 @@ const LANGUAGES = [
 type LanguageCode = typeof LANGUAGES[number]['code']
 
 const SHEET_HEIGHT = 220
-const { height: SCREEN_HEIGHT } = Dimensions.get('window')
 
 // ═══════════════════════════════════════════════════════════════════
 // COMPONENTE
 // ═══════════════════════════════════════════════════════════════════
 
-export function LanguageSelector() {
+interface Props {
+  /** Modo controlado: o pai gerencia visibilidade e não exibe o trigger interno */
+  externalVisible?: boolean
+  onExternalClose?: () => void
+}
+
+export function LanguageSelector({ externalVisible, onExternalClose }: Props = {}) {
+  const isControlled = externalVisible !== undefined
   const { i18n: i18nInstance } = useTranslation()
-  const [visible, setVisible] = useState(false)
+  const [internalVisible, setInternalVisible] = useState(false)
 
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current
   const backdropOpacity = useRef(new Animated.Value(0)).current
@@ -44,10 +49,11 @@ export function LanguageSelector() {
   const current = LANGUAGES.find((l) => l.code === i18nInstance.language)
     ?? LANGUAGES[0]
 
-  // ── Animações ──────────────────────────────────────────────────
+  // ── Animação de abertura ────────────────────────────────────────
 
-  const openSheet = () => {
-    setVisible(true)
+  function runOpenAnimation() {
+    translateY.setValue(SHEET_HEIGHT)
+    backdropOpacity.setValue(0)
     Animated.parallel([
       Animated.timing(translateY, {
         toValue: 0,
@@ -63,7 +69,17 @@ export function LanguageSelector() {
     ]).start()
   }
 
-  const closeSheet = (callback?: () => void) => {
+  // Modo controlado: abre quando pai muda externalVisible para true
+  useEffect(() => {
+    if (isControlled && externalVisible) {
+      setInternalVisible(true)
+      runOpenAnimation()
+    }
+  }, [externalVisible])
+
+  // ── Fechar (com animação) ───────────────────────────────────────
+
+  function closeSheet(callback?: () => void) {
     Animated.parallel([
       Animated.timing(translateY, {
         toValue: SHEET_HEIGHT,
@@ -77,22 +93,21 @@ export function LanguageSelector() {
         useNativeDriver: true,
       }),
     ]).start(() => {
-      setVisible(false)
+      setInternalVisible(false)
+      onExternalClose?.()
       callback?.()
     })
   }
 
-  // Reset ao fechar
-  useEffect(() => {
-    if (!visible) {
-      translateY.setValue(SHEET_HEIGHT)
-      backdropOpacity.setValue(0)
-    }
-  }, [visible])
+  // Modo standalone: abre pelo trigger interno
+  function openSheet() {
+    setInternalVisible(true)
+    runOpenAnimation()
+  }
 
   // ── Handlers ───────────────────────────────────────────────────
 
-  const handleSelect = (code: LanguageCode) => {
+  function handleSelect(code: LanguageCode) {
     if (code === i18nInstance.language) {
       closeSheet()
       return
@@ -106,30 +121,27 @@ export function LanguageSelector() {
 
   return (
     <>
-      {/* ── Trigger ── */}
-      <TouchableOpacity
-        onPress={openSheet}
-        style={styles.trigger}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.triggerFlag}>{current.flag}</Text>
-        <Text variant="label" color={Colors.neutral.secondary}>
-          {current.short}
-        </Text>
-        <Text variant="caption" color={Colors.neutral.placeholder} style={styles.chevron}>
-          ›
-        </Text>
-      </TouchableOpacity>
+      {/* Trigger interno — apenas no modo standalone */}
+      {!isControlled && (
+        <TouchableOpacity onPress={openSheet} style={styles.trigger} activeOpacity={0.7}>
+          <Text style={styles.triggerFlag}>{current.flag}</Text>
+          <Text variant="label" color={Colors.neutral.secondary}>
+            {current.short}
+          </Text>
+          <Text variant="caption" color={Colors.neutral.placeholder} style={styles.chevron}>
+            ›
+          </Text>
+        </TouchableOpacity>
+      )}
 
       {/* ── Bottom Sheet ── */}
       <Modal
-        visible={visible}
+        visible={internalVisible}
         transparent
         animationType="none"
         onRequestClose={() => closeSheet()}
         statusBarTranslucent
       >
-        {/* Backdrop */}
         <Animated.View
           style={[styles.backdrop, { opacity: backdropOpacity }]}
           pointerEvents="box-none"
@@ -137,35 +149,22 @@ export function LanguageSelector() {
           <Pressable style={StyleSheet.absoluteFill} onPress={() => closeSheet()} />
         </Animated.View>
 
-        {/* Sheet */}
-        <Animated.View
-          style={[
-            styles.sheet,
-            { transform: [{ translateY }] },
-          ]}
-        >
-          {/* Drag handle */}
+        <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
           <View style={styles.handle} />
 
-          {/* Título */}
           <Text variant="h3" color={Colors.neutral.primary} style={styles.title}>
             Idioma
           </Text>
 
-          {/* Cartões */}
           <View style={styles.cards}>
             {LANGUAGES.map((lang) => {
               const isSelected = lang.code === i18nInstance.language
-
               return (
                 <TouchableOpacity
                   key={lang.code}
                   onPress={() => handleSelect(lang.code)}
                   activeOpacity={0.7}
-                  style={[
-                    styles.card,
-                    isSelected && styles.cardSelected,
-                  ]}
+                  style={[styles.card, isSelected && styles.cardSelected]}
                 >
                   <Text style={styles.cardFlag}>{lang.flag}</Text>
                   <Text
