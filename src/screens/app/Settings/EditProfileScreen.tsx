@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     ...Shadows.sm,
   },
   uploadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: AVATAR_SIZE / 2,
     backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
