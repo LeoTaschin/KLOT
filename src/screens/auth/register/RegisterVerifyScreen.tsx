@@ -38,7 +38,7 @@ export function RegisterVerifyScreen({ navigation }: AuthScreenProps<'RegisterVe
   const [countdown, setCountdown] = useState(60)
   const [canResend, setCanResend] = useState(false)
 
-  const hiddenInputRef = useRef<TextInput | null>(null)
+  const hiddenInputRef = useRef<React.ComponentRef<typeof TextInput>>(null)
   const footerBottom = useRef(new Animated.Value(0)).current
 
   // ── Countdown para reenviar ──────────────────────────────────────

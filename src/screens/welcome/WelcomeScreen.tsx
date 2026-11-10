@@ -89,7 +89,7 @@ export function WelcomeScreen() {
         backgroundColor: Colors.neutral.white,
       }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.neutral.white} />
+      <StatusBar barStyle="dark-content" />
 
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* HEADER — Seletor de idioma */}

@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
 // COMPONENTE
 // ═══════════════════════════════════════════════════════════════════
 
-export const Badge = React.forwardRef<View, BadgeProps>(
+export const Badge = React.forwardRef<React.ComponentRef<typeof View>, BadgeProps>(
   (
     {
       variant,

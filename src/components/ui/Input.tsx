@@ -26,14 +26,14 @@ export interface InputProps extends Omit<TextInputProps, 'style'> {
   /** Estilos do container externo */
   containerStyle?: ViewStyle
   /** Ref externo para focar o campo */
-  inputRef?: React.RefObject<TextInput | null>
+  inputRef?: React.RefObject<React.ComponentRef<typeof TextInput> | null>
 }
 
 // ═══════════════════════════════════════════════════════════════════
 // COMPONENTE
 // ═══════════════════════════════════════════════════════════════════
 
-export const Input = React.forwardRef<TextInput, InputProps>(
+export const Input = React.forwardRef<React.ComponentRef<typeof TextInput>, InputProps>(
   (
     {
       label,

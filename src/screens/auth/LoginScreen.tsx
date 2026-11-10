@@ -46,7 +46,7 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
   const [hasPasswordError, setHasPasswordError] = useState(false)
   const [keyboardVisible, setKeyboardVisible] = useState(false)
 
-  const passwordRef = useRef<TextInput>(null)
+  const passwordRef = useRef<React.ComponentRef<typeof TextInput>>(null)
   const footerBottom = useRef(new Animated.Value(0)).current  // anima bottom: 0 → keyboardH
   const registerOpacity = useRef(new Animated.Value(1)).current
 

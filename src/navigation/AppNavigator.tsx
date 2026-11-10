@@ -13,8 +13,8 @@ export function AppNavigator() {
   return (
     <Tab.Navigator
       tabBar={(props) => <BottomTabBar {...props} />}
-      sceneContainerStyle={{ backgroundColor: 'transparent' }}
       screenOptions={{
+        sceneStyle: { backgroundColor: 'transparent' },
         headerShown: false,
         lazy: true,
       }}

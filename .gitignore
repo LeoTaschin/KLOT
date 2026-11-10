@@ -12,3 +12,6 @@ web-build/
 .env
 .env.local
 .env.*.local
+
+# backups locais
+*.bak

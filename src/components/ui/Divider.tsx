@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
 // COMPONENTE
 // ═══════════════════════════════════════════════════════════════════
 
-export const Divider = React.forwardRef<View, DividerProps>(
+export const Divider = React.forwardRef<React.ComponentRef<typeof View>, DividerProps>(
   (
     {
       spacing = Spacing.md,

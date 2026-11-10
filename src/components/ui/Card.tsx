@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
 // COMPONENTE
 // ═══════════════════════════════════════════════════════════════════
 
-export const Card = React.forwardRef<View, CardProps>(
+export const Card = React.forwardRef<React.ComponentRef<typeof View>, CardProps>(
   (
     {
       padding = Spacing.md,
