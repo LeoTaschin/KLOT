@@ -36,7 +36,7 @@ function BackIcon() {
 
 export function ChangeNameScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets()
-  const inputRef = useRef<TextInput>(null)
+  const inputRef = useRef<React.ComponentRef<typeof TextInput>>(null)
 
   const [userId, setUserId] = useState('')
   const [value, setValue] = useState('')

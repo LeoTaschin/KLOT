@@ -63,8 +63,8 @@ export function RegisterInfoScreen({ navigation }: AuthScreenProps<'RegisterInfo
   const [emailError, setEmailError] = useState<string | null>(null)
   const [birthdateError, setBirthdateError] = useState<string | null>(null)
 
-  const emailRef = useRef<TextInput | null>(null)
-  const birthdateRef = useRef<TextInput | null>(null)
+  const emailRef = useRef<React.ComponentRef<typeof TextInput>>(null)
+  const birthdateRef = useRef<React.ComponentRef<typeof TextInput>>(null)
   const footerBottom = useRef(new Animated.Value(0)).current
 
   // ── Animação de teclado ──────────────────────────────────────────

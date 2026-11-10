@@ -38,7 +38,7 @@ function BackIcon() {
 
 export function ChangeUsernameScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets()
-  const inputRef = useRef<TextInput>(null)
+  const inputRef = useRef<React.ComponentRef<typeof TextInput>>(null)
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [userId, setUserId] = useState('')

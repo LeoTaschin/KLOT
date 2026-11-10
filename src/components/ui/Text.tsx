@@ -6,7 +6,7 @@
  */
 
 import React from 'react'
-import { StyleSheet, Text as RNText, TextProps, TextStyle } from 'react-native'
+import { StyleProp, StyleSheet, Text as RNText, TextProps, TextStyle } from 'react-native'
 
 import { Colors, Typography } from '../../constants/theme'
 
@@ -28,7 +28,7 @@ export interface CustomTextProps extends Omit<TextProps, 'style'> {
   /** Font weight customizado */
   weight?: FontWeight
   /** Estilos customizados */
-  style?: TextStyle
+  style?: StyleProp<TextStyle>
   /** Conteúdo do texto */
   children: React.ReactNode
 }
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
 // COMPONENTE
 // ═══════════════════════════════════════════════════════════════════
 
-export const Text = React.forwardRef<RNText, CustomTextProps>(
+export const Text = React.forwardRef<React.ComponentRef<typeof RNText>, CustomTextProps>(
   (
     {
       variant = 'body',
